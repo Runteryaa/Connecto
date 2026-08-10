@@ -5,8 +5,7 @@
   "mixins": [
     "ServerLoginPacketListenerImplMixin",
     "ServerCommonPacketListenerImplMixin",
-    "ConnectionAccessor",
-    "MinecraftServerMixin"
+    "ConnectionAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
