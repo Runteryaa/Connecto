@@ -3,10 +3,11 @@
   "id": "connecto",
   "version": "${version}",
   "name": "Connecto",
-  "description": "Allows designated offline-mode bot accounts to connect to an online-mode server by bypassing Mojang session verification for whitelisted usernames.",
+  "description": "Allows designated offline-mode accounts to connect to an online-mode server by bypassing Mojang session verification for whitelisted usernames.",
   "authors": ["Runterya"],
   "contact": {},
   "license": "MIT",
+  "icon": "assets/connecto/icon.png",
   "environment": "server",
   "entrypoints": {
     "main": [
