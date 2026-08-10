@@ -6,4 +6,5 @@ node_modules/
 jdk21/
 gradle9/
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.class
