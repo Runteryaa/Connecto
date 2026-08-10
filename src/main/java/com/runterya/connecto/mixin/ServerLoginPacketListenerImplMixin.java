@@ -2,10 +2,12 @@ package com.runterya.connecto.mixin;
 
 import com.runterya.connecto.ConnectoConfig;
 import com.runterya.connecto.ConnectoMod;
+import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.login.ServerboundHelloPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,6 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ServerLoginPacketListenerImpl.class)
 public abstract class ServerLoginPacketListenerImplMixin {
 
+    @Shadow
+    public Connection connection;
+
     @Unique
     private String connecto$currentConnectingUser = null;
 
@@ -28,7 +33,7 @@ public abstract class ServerLoginPacketListenerImplMixin {
         this.connecto$currentConnectingUser = packet.name();
     }
 
-    @org.spongepowered.asm.mixin.Shadow
+    @Shadow
     @org.jetbrains.annotations.Nullable
     private com.mojang.authlib.GameProfile authenticatedProfile;
 
@@ -59,6 +64,22 @@ public abstract class ServerLoginPacketListenerImplMixin {
                 "[Connecto] Whitelisted user '{}' detected – bypassing Mojang online authentication.",
                 this.connecto$currentConnectingUser
             );
+
+            // Remove Netty timeout handlers as early as handleHello
+            try {
+                io.netty.channel.Channel channel = ((ConnectionAccessor) this.connection).connecto$getChannel();
+                if (channel != null) {
+                    if (channel.pipeline().get("timeout") != null) {
+                        channel.pipeline().remove("timeout");
+                    }
+                    for (java.util.Map.Entry<String, io.netty.channel.ChannelHandler> entry : channel.pipeline()) {
+                        if (entry.getValue() instanceof io.netty.handler.timeout.ReadTimeoutHandler) {
+                            channel.pipeline().remove(entry.getKey());
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+
             return false; // Force offline-mode auth path for this user
         }
         return server.usesAuthentication();
