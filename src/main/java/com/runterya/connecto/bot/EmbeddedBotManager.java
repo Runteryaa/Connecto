@@ -39,7 +39,7 @@ public class EmbeddedBotManager {
     private static final int C_LOGIN_ACKNOWLEDGED    = 0x03;
     // Configuration state – Server → Client
     private static final int S_CONFIG_FINISH             = 0x02;
-    private static final int S_CONFIG_SELECT_KNOWN_PACKS = 0x0D;
+    private static final int S_CONFIG_SELECT_KNOWN_PACKS = 0x05; // MC 26.x protocol 775
     // Configuration state – Client → Server
     private static final int C_CONFIG_FINISH             = 0x03;
     private static final int C_CONFIG_SELECT_KNOWN_PACKS = 0x07;
