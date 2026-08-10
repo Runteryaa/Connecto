@@ -4,5 +4,7 @@
     "Secret_AFK_Bot",
     "Runterya"
   ],
-  "whitelistPrefix": ""
+  "whitelistPrefix": "",
+  "autoConnectBot": true,
+  "botName": "Secret_AFK_Bot"
 }

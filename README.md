@@ -1,4 +1,4 @@
-# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+)
+# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+) [BETA]
 
 > Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
@@ -32,6 +32,8 @@ Connecto/
 │   ├── java/com/runterya/connecto/
 │   │   ├── ConnectoMod.java            # Mod initializer
 │   │   ├── ConnectoConfig.java         # Config loader/saver (Gson)
+│   │   ├── bot/
+│   │   │   └── EmbeddedBotManager.java # Auto-connecting TCP bot daemon (BETA)
 │   │   └── mixin/
 │   │       └── ServerLoginPacketListenerImplMixin.java  ← core logic
 │   └── resources/
@@ -79,23 +81,20 @@ java -version
 3. Set `"enabled": true` in `config/connecto.json` and add your username to `whitelist`.
 4. Restart the server.
 
-### Server requirements
-- Fabric Loader ≥ 0.14.22 installed on the server
-- Fabric API jar present in `mods/`
-- `online-mode=true` in `server.properties` (the mod works *alongside* online-mode, not by disabling it)
-
 ---
 
 ## 🔧 Configuration (`config/connecto.json`)
 
 ```json
 {
-  "enabled": false,
+  "enabled": true,
   "whitelist": [
     "Secret_AFK_Bot",
     "Runterya"
   ],
-  "whitelistPrefix": ""
+  "whitelistPrefix": "",
+  "autoConnectBot": true,
+  "botName": "Secret_AFK_Bot"
 }
 ```
 
@@ -104,25 +103,19 @@ java -version
 | `enabled` | boolean | Master toggle. Set to `true` to enable auth bypass for whitelisted users |
 | `whitelist` | string[] | **Exact** usernames exempt from Mojang auth (case-insensitive) |
 | `whitelistPrefix` | string | Any username starting with this prefix is exempt. Use `"*"` to allow **all** usernames. Leave `""` to disable |
-
-> ⚠️ Restart the server after editing `connecto.json`.
+| `autoConnectBot` | boolean | **(Beta)** Automatically launches an embedded TCP client on server startup to keep host server active 24/7 |
+| `botName` | string | **(Beta)** Username used by the embedded TCP bot |
 
 ---
 
-## 💻 Running the Test Client
+## ⚡ Embedded Auto-Connect TCP Bot (Beta)
 
-```powershell
-# Install dependencies
-npm install
+When `"autoConnectBot": true`, Connecto automatically launches a background TCP client daemon on server startup.
 
-# Edit bot.js and set CONFIG.host to your server address, then:
-npm start
-```
-
-The test client:
-- Connects in **offline mode** (`auth: 'offline'`) using the whitelisted username
-- Executes a subtle head-rotation every 30 s to keep the TCP session alive
-- Automatically reconnects after kicks or disconnects
+**Benefits:**
+- Establishes an **actual active TCP network socket** on `127.0.0.1:<port>`.
+- Prevents hosting providers (**Play.Hosting**, Aternos, etc.) from auto-shutting down the server due to inactivity.
+- Operates 100% inside the Fabric mod — **no Node.js or `bot.js` required**.
 
 ---
 
@@ -142,20 +135,6 @@ Connecto flow (for whitelisted usernames):
 ```
 
 The offline UUID is derived with `UUIDUtil.createOfflinePlayerUUID("<name>")`, identical to how vanilla offline-mode servers generate UUIDs, ensuring world data (inventories, stats) and UUID displays are consistent across reconnects.
-
----
-
-## ⚠️ Security Considerations
-
-- **Keep `whitelist` usernames secret.** Anyone who knows a whitelisted username can join without a Mojang account.
-- Setting `"whitelistPrefix": "*"` allows **anyone** to connect using offline mode.
-- Consider combining with a **whitelist** (`/whitelist on`) and adding the user to the whitelist using their offline UUID so no other player can steal that slot.
-
----
-
-## 🤖 Acknowledgments
-
-This project was built with the assistance of **AI** (Google Antigravity AI).
 
 ---
 

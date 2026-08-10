@@ -49,6 +49,15 @@ public class ConnectoConfig {
     @SerializedName("secretPrefix")
     private String legacySecretPrefix;
 
+    /**
+     * Beta feature: Automatically launch an embedded TCP client when server starts
+     * to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7 without auto-shutdown.
+     */
+    public boolean autoConnectBot = true;
+
+    /** Username for the auto-connecting embedded TCP bot */
+    public String botName = "Secret_AFK_Bot";
+
     // ---- Singleton / loading ----
 
     private static ConnectoConfig instance;
@@ -79,6 +88,9 @@ public class ConnectoConfig {
                 whitelistPrefix = "";
             }
         }
+        if (botName == null || botName.isBlank()) {
+            botName = "Secret_AFK_Bot";
+        }
     }
 
     /**
@@ -105,8 +117,8 @@ public class ConnectoConfig {
                 instance = new ConnectoConfig();
             }
             instance.sanitize();
-            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}'",
-                    file, instance.enabled, instance.whitelist, instance.whitelistPrefix);
+            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', autoConnectBot={}",
+                    file, instance.enabled, instance.whitelist, instance.whitelistPrefix, instance.autoConnectBot);
         } catch (Exception e) {
             LOGGER.error("[Connecto] Failed to read config – using defaults", e);
             instance = new ConnectoConfig();
