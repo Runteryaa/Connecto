@@ -33,31 +33,15 @@ public abstract class ServerCommonPacketListenerImplMixin {
 
     @Inject(method = "keepConnectionAlive", at = @At("HEAD"), cancellable = true)
     private void connecto$preventUserTimeout(CallbackInfo ci) {
-        String playerName = this.playerProfile().name();
+        GameProfile profile = this.playerProfile();
+        if (profile == null || profile.name() == null) return;
+
+        String playerName = profile.name();
         ConnectoMod.LOGGER.debug("[Connecto] keepConnectionAlive called for: {}", playerName);
 
         if (!ConnectoConfig.getInstance().isWhitelisted(playerName)) return;
 
         // Suppress keepAlive timeout for whitelisted accounts silently
-
-        try {
-            io.netty.channel.Channel channel = ((ConnectionAccessor) this.connection).connecto$getChannel();
-            if (channel != null) {
-                if (channel.pipeline().get("timeout") != null) {
-                    channel.pipeline().remove("timeout");
-                    ConnectoMod.LOGGER.info("[Connecto] Removed Netty timeout handler for whitelisted user: {}", playerName);
-                }
-                for (java.util.Map.Entry<String, io.netty.channel.ChannelHandler> entry : channel.pipeline()) {
-                    if (entry.getValue() instanceof io.netty.handler.timeout.ReadTimeoutHandler) {
-                        channel.pipeline().remove(entry.getKey());
-                        ConnectoMod.LOGGER.info("[Connecto] Removed Netty ReadTimeoutHandler ({}) for whitelisted user: {}", entry.getKey(), playerName);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            ConnectoMod.LOGGER.debug("[Connecto] Failed to remove Netty timeout handler", e);
-        }
-
         ci.cancel();
     }
 
@@ -74,10 +58,13 @@ public abstract class ServerCommonPacketListenerImplMixin {
         )
     )
     private void connecto$blockTimeoutDisconnect(ServerCommonPacketListenerImpl instance, Component message) {
-        String playerName = ((ServerCommonPacketListenerImplMixin) (Object) instance).playerProfile().name();
-        if (ConnectoConfig.getInstance().isWhitelisted(playerName)) {
-            ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for whitelisted user: {}", playerName);
-            return; // Do NOT disconnect the user
+        GameProfile profile = ((ServerCommonPacketListenerImplMixin) (Object) instance).playerProfile();
+        if (profile != null && profile.name() != null) {
+            String playerName = profile.name();
+            if (ConnectoConfig.getInstance().isWhitelisted(playerName)) {
+                ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for whitelisted user: {}", playerName);
+                return; // Do NOT disconnect the user
+            }
         }
         instance.disconnect(message);
     }
