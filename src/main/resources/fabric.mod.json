@@ -5,7 +5,11 @@
   "name": "Connecto",
   "description": "Allows designated offline-mode accounts to connect to an online-mode server by bypassing Mojang session verification for whitelisted usernames.",
   "authors": ["Runterya"],
-  "contact": {},
+  "contact": {
+    "homepage": "https://github.com/Runteryaa/Connecto",
+    "sources": "https://github.com/Runteryaa/Connecto",
+    "issues": "https://github.com/Runteryaa/Connecto/issues"
+  },
   "license": "MIT",
   "icon": "assets/connecto/icon.png",
   "environment": "server",
