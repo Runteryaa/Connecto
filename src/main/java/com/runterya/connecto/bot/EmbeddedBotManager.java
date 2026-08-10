@@ -38,11 +38,11 @@ public class EmbeddedBotManager {
     // Login state – Client → Server
     private static final int C_LOGIN_ACKNOWLEDGED    = 0x03;
     // Configuration state – Server → Client
-    private static final int S_CONFIG_FINISH             = 0x02;
-    private static final int S_CONFIG_SELECT_KNOWN_PACKS = 0x05; // MC 26.x protocol 775
+    private static final int S_CONFIG_FINISH = 0x02;
+    private static final int S_CONFIG_PING   = 0x05; // Ping (4-byte int), needs Pong before server sends Finish
     // Configuration state – Client → Server
-    private static final int C_CONFIG_FINISH             = 0x03;
-    private static final int C_CONFIG_SELECT_KNOWN_PACKS = 0x07;
+    private static final int C_CONFIG_FINISH = 0x03;
+    private static final int C_CONFIG_PONG   = 0x05; // Pong (echo the 4-byte int from Ping)
 
     private enum BotState { LOGIN, CONFIGURATION, PLAY }
 
@@ -132,10 +132,11 @@ public class EmbeddedBotManager {
                         }
 
                     } else if (state == BotState.CONFIGURATION) {
-                        if (packetId == S_CONFIG_SELECT_KNOWN_PACKS) {
-                            ConnectoMod.LOGGER.info("[Connecto] [Config] Select Known Packs (0x{}) received. Responding with empty list.", Integer.toHexString(packetId));
-                            // Respond with empty known packs (0 entries)
-                            sendPacket(out, compressionThreshold, C_CONFIG_SELECT_KNOWN_PACKS, writeVarIntBytes(0));
+                        if (packetId == S_CONFIG_PING) {
+                            // Echo the 4-byte int back as a Pong so server proceeds to Finish Configuration
+                            byte[] pingPayload = Arrays.copyOfRange(data, off[0], data.length);
+                            ConnectoMod.LOGGER.info("[Connecto] [Config] Ping received. Sending Pong...");
+                            sendPacket(out, compressionThreshold, C_CONFIG_PONG, pingPayload);
                         } else if (packetId == S_CONFIG_FINISH) {
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Configuration done! Acknowledging Finish Configuration...");
                             sendPacket(out, compressionThreshold, C_CONFIG_FINISH, new byte[0]);
