@@ -2,6 +2,7 @@ package com.runterya.connecto;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,12 +32,15 @@ public class ConnectoConfig {
 
     /**
      * Exact usernames that are allowed to bypass Mojang auth.
-     * These must also match what the Mineflayer bot sends as its username.
      */
-    public List<String> botUsernames = new ArrayList<>(List.of("Secret_AFK_Bot"));
+    public List<String> whitelist = new ArrayList<>(List.of("Secret_AFK_Bot"));
+
+    /** Legacy config fallback for backwards compatibility */
+    @SerializedName("botUsernames")
+    private List<String> legacyBotUsernames;
 
     /**
-     * Optional: all usernames that START with this prefix are treated as bot
+     * Optional: all usernames that START with this prefix are treated as exempt
      * accounts regardless of the exact name. Leave empty ("") to disable.
      */
     public String secretPrefix = "";
@@ -54,11 +58,15 @@ public class ConnectoConfig {
     }
 
     /**
-     * Ensures all fields are non-null after deserialization.
+     * Ensures all fields are non-null after deserialization and handles migration from legacy keys.
      */
     public void sanitize() {
-        if (botUsernames == null) {
-            botUsernames = new ArrayList<>(List.of("Secret_AFK_Bot"));
+        if (whitelist == null) {
+            if (legacyBotUsernames != null && !legacyBotUsernames.isEmpty()) {
+                whitelist = new ArrayList<>(legacyBotUsernames);
+            } else {
+                whitelist = new ArrayList<>(List.of("Secret_AFK_Bot"));
+            }
         }
         if (secretPrefix == null) {
             secretPrefix = "";
@@ -89,8 +97,8 @@ public class ConnectoConfig {
                 instance = new ConnectoConfig();
             }
             instance.sanitize();
-            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, bots={}",
-                    file, instance.enabled, instance.botUsernames);
+            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}",
+                    file, instance.enabled, instance.whitelist);
         } catch (Exception e) {
             LOGGER.error("[Connecto] Failed to read config – using defaults", e);
             instance = new ConnectoConfig();
@@ -111,22 +119,21 @@ public class ConnectoConfig {
         }
     }
 
-    // ---- Helpers used by the Mixin ----
+    // ---- Helpers used by Mixins ----
 
     /**
-     * Returns {@code true} if the given username should bypass Mojang auth.
+     * Returns {@code true} if the given username is on the whitelist or matches the prefix and should bypass Mojang auth.
      *
-     * @param username the name provided in the client's login-hello packet
+     * @param username the name provided in the client's login packet
      */
-    public boolean isBotUsername(String username) {
+    public boolean isWhitelisted(String username) {
         if (username == null) return false;
-        // Note: intentionally NOT checking 'enabled' here – we always allow listed bots.
 
         sanitize();
 
         // Exact-match list
-        for (String bot : botUsernames) {
-            if (bot != null && bot.equalsIgnoreCase(username)) return true;
+        for (String user : whitelist) {
+            if (user != null && user.equalsIgnoreCase(username)) return true;
         }
 
         // Prefix match (only when a non-empty prefix is configured)

@@ -1,6 +1,6 @@
 {
   "enabled": false,
-  "botUsernames": [
+  "whitelist": [
     "Secret_AFK_Bot"
   ],
   "secretPrefix": ""

@@ -14,13 +14,13 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Two-layer protection against keepalive timeouts for the AFK bot:
+ * Two-layer protection against keepalive timeouts for whitelisted accounts:
  *
- * Layer 1 (@Inject HEAD + cancel): Cancels keepConnectionAlive() entirely for the bot
+ * Layer 1 (@Inject HEAD + cancel): Cancels keepConnectionAlive() entirely for whitelisted users
  * so keepAlivePending is never set to true and the disconnect branch is never reached.
  *
  * Layer 2 (@Redirect): Even if Layer 1 fails, intercepts the actual disconnect() call
- * within keepConnectionAlive() and skips it for the bot.
+ * within keepConnectionAlive() and skips it for whitelisted users.
  */
 @Mixin(ServerCommonPacketListenerImpl.class)
 public abstract class ServerCommonPacketListenerImplMixin {
@@ -32,25 +32,25 @@ public abstract class ServerCommonPacketListenerImplMixin {
     protected abstract GameProfile playerProfile();
 
     @Inject(method = "keepConnectionAlive", at = @At("HEAD"), cancellable = true)
-    private void connecto$preventBotTimeout(CallbackInfo ci) {
+    private void connecto$preventUserTimeout(CallbackInfo ci) {
         String playerName = this.playerProfile().name();
         ConnectoMod.LOGGER.debug("[Connecto] keepConnectionAlive called for: {}", playerName);
 
-        if (!ConnectoConfig.getInstance().isBotUsername(playerName)) return;
+        if (!ConnectoConfig.getInstance().isWhitelisted(playerName)) return;
 
-        // Suppress keepAlive timeout for bots silently
+        // Suppress keepAlive timeout for whitelisted accounts silently
 
         try {
             io.netty.channel.Channel channel = ((ConnectionAccessor) this.connection).connecto$getChannel();
             if (channel != null) {
                 if (channel.pipeline().get("timeout") != null) {
                     channel.pipeline().remove("timeout");
-                    ConnectoMod.LOGGER.info("[Connecto] Removed Netty timeout handler for bot: {}", playerName);
+                    ConnectoMod.LOGGER.info("[Connecto] Removed Netty timeout handler for whitelisted user: {}", playerName);
                 }
                 for (java.util.Map.Entry<String, io.netty.channel.ChannelHandler> entry : channel.pipeline()) {
                     if (entry.getValue() instanceof io.netty.handler.timeout.ReadTimeoutHandler) {
                         channel.pipeline().remove(entry.getKey());
-                        ConnectoMod.LOGGER.info("[Connecto] Removed Netty ReadTimeoutHandler ({}) for bot: {}", entry.getKey(), playerName);
+                        ConnectoMod.LOGGER.info("[Connecto] Removed Netty ReadTimeoutHandler ({}) for whitelisted user: {}", entry.getKey(), playerName);
                     }
                 }
             }
@@ -64,7 +64,7 @@ public abstract class ServerCommonPacketListenerImplMixin {
     /**
      * Backup: if the @Inject cancel somehow doesn't prevent the disconnect,
      * this @Redirect intercepts the actual disconnect() call within keepConnectionAlive()
-     * and skips it for the bot.
+     * and skips it for the whitelisted user.
      */
     @Redirect(
         method = "keepConnectionAlive",
@@ -75,9 +75,9 @@ public abstract class ServerCommonPacketListenerImplMixin {
     )
     private void connecto$blockTimeoutDisconnect(ServerCommonPacketListenerImpl instance, Component message) {
         String playerName = ((ServerCommonPacketListenerImplMixin) (Object) instance).playerProfile().name();
-        if (ConnectoConfig.getInstance().isBotUsername(playerName)) {
-            ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for bot: {}", playerName);
-            return; // Do NOT disconnect the bot
+        if (ConnectoConfig.getInstance().isWhitelisted(playerName)) {
+            ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for whitelisted user: {}", playerName);
+            return; // Do NOT disconnect the user
         }
         instance.disconnect(message);
     }

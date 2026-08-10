@@ -1,6 +1,6 @@
 # Connecto — Fabric Server Mod (MC 26.1.2)
 
-> Allows designated offline-mode bot accounts to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
+> Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
 ---
 
@@ -24,8 +24,8 @@ Connecto/
 │   └── resources/
 │       ├── fabric.mod.json
 │       └── connecto.mixins.json
-├── bot.js                              # Mineflayer AFK bot (Node.js)
-└── package.json                        # npm manifest for the bot
+├── bot.js                              # Mineflayer AFK test client (Node.js)
+└── package.json                        # npm manifest
 ```
 
 ---
@@ -63,7 +63,7 @@ java -version
 
 1. Copy `build/libs/connecto-1.1.3.jar` into the server's `mods/` folder.
 2. Start the server once to generate `config/connecto.json`.
-3. Set `"enabled": true` in `config/connecto.json` and add your bot's username to `botUsernames`.
+3. Set `"enabled": true` in `config/connecto.json` and add your username to `whitelist`.
 4. Restart the server.
 
 ### Server requirements
@@ -78,7 +78,7 @@ java -version
 ```json
 {
   "enabled": false,
-  "botUsernames": [
+  "whitelist": [
     "Secret_AFK_Bot"
   ],
   "secretPrefix": ""
@@ -87,15 +87,15 @@ java -version
 
 | Key | Type | Description |
 |---|---|---|
-| `enabled` | boolean | Master toggle. Set to `true` to enable auth bypass for bots |
-| `botUsernames` | string[] | **Exact** usernames exempt from Mojang auth (case-insensitive) |
-| `secretPrefix` | string | Any username that **starts with** this string is also treated as a bot. Leave `""` to disable |
+| `enabled` | boolean | Master toggle. Set to `true` to enable auth bypass for whitelisted users |
+| `whitelist` | string[] | **Exact** usernames exempt from Mojang auth (case-insensitive) |
+| `secretPrefix` | string | Any username that **starts with** this string is also treated as exempt. Leave `""` to disable |
 
 > ⚠️ Restart the server after editing `connecto.json`.
 
 ---
 
-## 🤖 Running the Mineflayer Bot
+## 💻 Running the Test Client
 
 ```powershell
 # Install dependencies
@@ -105,7 +105,7 @@ npm install
 npm start
 ```
 
-The bot:
+The test client:
 - Connects in **offline mode** (`auth: 'offline'`) using the whitelisted username
 - Executes a subtle head-rotation every 30 s to keep the TCP session alive
 - Automatically reconnects after kicks or disconnects
@@ -123,7 +123,7 @@ Connecto flow (for whitelisted usernames):
   Client → handleHello (Authentication bypassed via Mixin)
          → Server generates Offline UUID & GameProfile
          → Client finishes Login Phase (UUID injected during verifyLoginAndFinishConnectionSetup)
-         → Server suppresses Netty keepAlive timeouts to keep bot stable
+         → Server suppresses Netty keepAlive timeouts to keep session stable
          → startPlay()
 ```
 
@@ -133,8 +133,8 @@ The offline UUID is derived with `UUIDUtil.createOfflinePlayerUUID("<name>")`, i
 
 ## ⚠️ Security Considerations
 
-- **Keep `botUsernames` secret.** Anyone who knows the bot username can join without a Mojang account.
-- Consider combining with a **whitelist** (`/whitelist on`) and adding the bot to the whitelist using its offline UUID so no other player can steal that slot.
+- **Keep `whitelist` usernames secret.** Anyone who knows a whitelisted username can join without a Mojang account.
+- Consider combining with a **whitelist** (`/whitelist on`) and adding the user to the whitelist using their offline UUID so no other player can steal that slot.
 - The `secretPrefix` feature is convenient but reduces security surface if many names share the prefix.
 
 ---
