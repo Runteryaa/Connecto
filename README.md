@@ -81,7 +81,8 @@ java -version
 {
   "enabled": false,
   "whitelist": [
-    "Secret_AFK_Bot"
+    "Secret_AFK_Bot",
+    "Runterya"
   ],
   "whitelistPrefix": ""
 }

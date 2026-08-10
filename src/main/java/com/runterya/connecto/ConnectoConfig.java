@@ -33,7 +33,7 @@ public class ConnectoConfig {
     /**
      * Exact usernames that are allowed to bypass Mojang auth.
      */
-    public List<String> whitelist = new ArrayList<>(List.of("Secret_AFK_Bot"));
+    public List<String> whitelist = new ArrayList<>(List.of("Secret_AFK_Bot", "Runterya"));
 
     /** Legacy config fallback for backwards compatibility */
     @SerializedName("botUsernames")
@@ -69,7 +69,7 @@ public class ConnectoConfig {
             if (legacyBotUsernames != null && !legacyBotUsernames.isEmpty()) {
                 whitelist = new ArrayList<>(legacyBotUsernames);
             } else {
-                whitelist = new ArrayList<>(List.of("Secret_AFK_Bot"));
+                whitelist = new ArrayList<>(List.of("Secret_AFK_Bot", "Runterya"));
             }
         }
         if (whitelistPrefix == null) {
