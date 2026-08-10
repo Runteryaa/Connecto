@@ -148,8 +148,6 @@ public class EmbeddedBotManager {
                     }
                 }
 
-            } catch (InterruptedException e) {
-                break;
             } catch (Exception e) {
                 if (RUNNING.get()) {
                     ConnectoMod.LOGGER.warn("[Connecto] Embedded bot disconnected ({}). Reconnecting in 5s...", e.getMessage());
