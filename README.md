@@ -1,4 +1,4 @@
-# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+) [BETA]
+# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+) [v1.2.0-beta.1]
 
 > Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
@@ -69,14 +69,14 @@ java -version
 .\gradlew build
 
 # 3. Output JAR is at:
-#    build/libs/connecto-1.1.3.jar
+#    build/libs/connecto-1.2.0-beta.1.jar
 ```
 
 ---
 
 ## 🖥️ Installing on the Server
 
-1. Copy `build/libs/connecto-1.1.3.jar` into the server's `mods/` folder.
+1. Copy `build/libs/connecto-1.2.0-beta.1.jar` into the server's `mods/` folder.
 2. Start the server once to generate `config/connecto.json`.
 3. Set `"enabled": true` in `config/connecto.json` and add your username to `whitelist`.
 4. Restart the server.
