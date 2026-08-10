@@ -83,7 +83,7 @@ java -version
   "whitelist": [
     "Secret_AFK_Bot"
   ],
-  "secretPrefix": ""
+  "whitelistPrefix": ""
 }
 ```
 
@@ -91,7 +91,7 @@ java -version
 |---|---|---|
 | `enabled` | boolean | Master toggle. Set to `true` to enable auth bypass for whitelisted users |
 | `whitelist` | string[] | **Exact** usernames exempt from Mojang auth (case-insensitive) |
-| `secretPrefix` | string | Any username that **starts with** this string is also treated as exempt. Leave `""` to disable |
+| `whitelistPrefix` | string | Any username starting with this prefix is exempt. Use `"*"` to allow **all** usernames. Leave `""` to disable |
 
 > ⚠️ Restart the server after editing `connecto.json`.
 
@@ -136,8 +136,8 @@ The offline UUID is derived with `UUIDUtil.createOfflinePlayerUUID("<name>")`, i
 ## ⚠️ Security Considerations
 
 - **Keep `whitelist` usernames secret.** Anyone who knows a whitelisted username can join without a Mojang account.
+- Setting `"whitelistPrefix": "*"` allows **anyone** to connect using offline mode.
 - Consider combining with a **whitelist** (`/whitelist on`) and adding the user to the whitelist using their offline UUID so no other player can steal that slot.
-- The `secretPrefix` feature is convenient but reduces security surface if many names share the prefix.
 
 ---
 

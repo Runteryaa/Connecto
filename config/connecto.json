@@ -3,5 +3,5 @@
   "whitelist": [
     "Secret_AFK_Bot"
   ],
-  "secretPrefix": ""
+  "whitelistPrefix": ""
 }

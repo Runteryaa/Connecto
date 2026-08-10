@@ -41,9 +41,13 @@ public class ConnectoConfig {
 
     /**
      * Optional: all usernames that START with this prefix are treated as exempt
-     * accounts regardless of the exact name. Leave empty ("") to disable.
+     * accounts regardless of the exact name. Use "*" to allow all usernames. Leave empty ("") to disable.
      */
-    public String secretPrefix = "";
+    public String whitelistPrefix = "";
+
+    /** Legacy prefix fallback for backwards compatibility */
+    @SerializedName("secretPrefix")
+    private String legacySecretPrefix;
 
     // ---- Singleton / loading ----
 
@@ -68,8 +72,12 @@ public class ConnectoConfig {
                 whitelist = new ArrayList<>(List.of("Secret_AFK_Bot"));
             }
         }
-        if (secretPrefix == null) {
-            secretPrefix = "";
+        if (whitelistPrefix == null) {
+            if (legacySecretPrefix != null) {
+                whitelistPrefix = legacySecretPrefix;
+            } else {
+                whitelistPrefix = "";
+            }
         }
     }
 
@@ -97,8 +105,8 @@ public class ConnectoConfig {
                 instance = new ConnectoConfig();
             }
             instance.sanitize();
-            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}",
-                    file, instance.enabled, instance.whitelist);
+            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}'",
+                    file, instance.enabled, instance.whitelist, instance.whitelistPrefix);
         } catch (Exception e) {
             LOGGER.error("[Connecto] Failed to read config – using defaults", e);
             instance = new ConnectoConfig();
@@ -123,6 +131,7 @@ public class ConnectoConfig {
 
     /**
      * Returns {@code true} if the given username is on the whitelist or matches the prefix and should bypass Mojang auth.
+     * Special value "*" in {@code whitelistPrefix} matches ALL usernames.
      *
      * @param username the name provided in the client's login packet
      */
@@ -131,13 +140,16 @@ public class ConnectoConfig {
 
         sanitize();
 
+        // Wildcard '*' allows ALL usernames to bypass auth
+        if ("*".equals(whitelistPrefix.trim())) return true;
+
         // Exact-match list
         for (String user : whitelist) {
             if (user != null && user.equalsIgnoreCase(username)) return true;
         }
 
         // Prefix match (only when a non-empty prefix is configured)
-        if (!secretPrefix.isBlank() && username.startsWith(secretPrefix)) return true;
+        if (!whitelistPrefix.isBlank() && username.startsWith(whitelistPrefix)) return true;
 
         return false;
     }
