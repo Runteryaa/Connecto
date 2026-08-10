@@ -133,6 +133,7 @@ public class EmbeddedBotManager {
 
                     } else if (state == BotState.CONFIGURATION) {
                         if (packetId == S_CONFIG_SELECT_KNOWN_PACKS) {
+                            ConnectoMod.LOGGER.info("[Connecto] [Config] Select Known Packs (0x{}) received. Responding with empty list.", Integer.toHexString(packetId));
                             // Respond with empty known packs (0 entries)
                             sendPacket(out, compressionThreshold, C_CONFIG_SELECT_KNOWN_PACKS, writeVarIntBytes(0));
                         } else if (packetId == S_CONFIG_FINISH) {
@@ -140,8 +141,10 @@ public class EmbeddedBotManager {
                             sendPacket(out, compressionThreshold, C_CONFIG_FINISH, new byte[0]);
                             state = BotState.PLAY;
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Uptime bot is IN-GAME! Server will not auto-pause.");
+                        } else {
+                            // Log unknown config packets so we can identify the right IDs
+                            ConnectoMod.LOGGER.info("[Connecto] [Config] Unknown packet 0x{} (len={}) – ignoring.", Integer.toHexString(packetId), data.length);
                         }
-                        // All other config packets (Registry Data, Feature Flags, etc.) silently ignored
 
                     } else {
                         // BotState.PLAY – drain all packets; server-side keepalive suppressed by our mixin
