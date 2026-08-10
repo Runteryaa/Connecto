@@ -37,14 +37,18 @@ public class EmbeddedBotManager {
     private static final int S_LOGIN_SET_COMPRESSION = 0x03;
     // Login state – Client → Server
     private static final int C_LOGIN_ACKNOWLEDGED    = 0x03;
-    // Configuration state – Server → Client (MC 26.x / protocol 775, +1 shift vs 1.21.4)
-    private static final int S_CONFIG_FINISH             = 0x03; // was 0x02 in 1.21.4
-    private static final int S_CONFIG_PING               = 0x05; // was 0x04 in 1.21.4
-    private static final int S_CONFIG_SELECT_KNOWN_PACKS = 0x0E; // was 0x0D in 1.21.4
-    // Configuration state – Client → Server (unchanged from 1.21.4)
-    private static final int C_CONFIG_FINISH             = 0x03; // Acknowledge Finish Configuration
-    private static final int C_CONFIG_PONG               = 0x05; // Pong (echo int from Ping)
-    private static final int C_CONFIG_SELECT_KNOWN_PACKS = 0x07; // Known Packs response
+    // Configuration state – Server → Client (MC 1.21.4 / protocol 775)
+    private static final int S_CONFIG_FINISH             = 0x02;
+    private static final int S_CONFIG_KEEPALIVE          = 0x03;
+    private static final int S_CONFIG_PING               = 0x04;
+    private static final int S_CONFIG_KNOWN_PACKS        = 0x0C;
+
+    // Configuration state – Client → Server (MC 1.21.4 / protocol 775)
+    private static final int C_CONFIG_CLIENT_INFO        = 0x00;
+    private static final int C_CONFIG_FINISH             = 0x02;
+    private static final int C_CONFIG_KEEPALIVE          = 0x03;
+    private static final int C_CONFIG_PONG               = 0x04;
+    private static final int C_CONFIG_KNOWN_PACKS        = 0x06;
 
     private enum BotState { LOGIN, CONFIGURATION, PLAY }
 
@@ -55,6 +59,10 @@ public class EmbeddedBotManager {
         workerThread.setDaemon(true);
         workerThread.start();
         ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on port {}.", botName, port);
+    }
+
+    public static boolean isRunning() {
+        return RUNNING.get();
     }
 
     public static synchronized void stop() {
@@ -127,6 +135,10 @@ public class EmbeddedBotManager {
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Login Success! Sending Login Acknowledged...");
                             sendPacket(out, compressionThreshold, C_LOGIN_ACKNOWLEDGED, new byte[0]);
                             state = BotState.CONFIGURATION;
+                            
+                            // Send Client Information immediately
+                            sendClientInformation(out, compressionThreshold);
+                            
                         } else if (packetId == S_LOGIN_DISCONNECT) {
                             String reason = readString(data, off);
                             ConnectoMod.LOGGER.warn("[Connecto] Login rejected: {}", reason);
@@ -135,25 +147,45 @@ public class EmbeddedBotManager {
 
                     } else if (state == BotState.CONFIGURATION) {
                         if (packetId == S_CONFIG_PING) {
-                            // Echo the 4-byte int back as a Pong so server proceeds
+                            // Echo the 8-byte long back as a Pong so server proceeds (in 1.21 it's a long, not an int!)
                             byte[] pingPayload = Arrays.copyOfRange(data, off[0], data.length);
                             ConnectoMod.LOGGER.info("[Connecto] [Config] Ping received. Sending Pong...");
                             sendPacket(out, compressionThreshold, C_CONFIG_PONG, pingPayload);
-                        } else if (packetId == S_CONFIG_SELECT_KNOWN_PACKS) {
-                            // Respond with empty known packs (0 entries) so server sends registry data and proceeds
+                        } else if (packetId == S_CONFIG_KEEPALIVE) {
+                            // Echo the 8-byte long back
+                            byte[] kaPayload = Arrays.copyOfRange(data, off[0], data.length);
+                            sendPacket(out, compressionThreshold, C_CONFIG_KEEPALIVE, kaPayload);
+                        } else if (packetId == S_CONFIG_KNOWN_PACKS) {
+                            // Respond with empty known packs (0 entries)
                             ConnectoMod.LOGGER.info("[Connecto] [Config] Select Known Packs received. Responding with empty list...");
-                            sendPacket(out, compressionThreshold, C_CONFIG_SELECT_KNOWN_PACKS, writeVarIntBytes(0));
+                            sendPacket(out, compressionThreshold, C_CONFIG_KNOWN_PACKS, writeVarIntBytes(0));
                         } else if (packetId == S_CONFIG_FINISH) {
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Finish Configuration received! Acknowledging...");
                             sendPacket(out, compressionThreshold, C_CONFIG_FINISH, new byte[0]);
                             state = BotState.PLAY;
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Uptime bot is IN-GAME! Server will not auto-pause.");
+                            
+                            // 3. Start a background thread to send periodic activity (swing arm) to trick AFK/sleep plugins
+                            final int currentCompression = compressionThreshold;
+                            Thread activityThread = new Thread(() -> {
+                                try {
+                                    while (RUNNING.get() && currentSocket != null && !currentSocket.isClosed()) {
+                                        Thread.sleep(10000); // every 10s
+                                        sendActivity(out, currentCompression);
+                                    }
+                                } catch (Exception e) {}
+                            });
+                            activityThread.setDaemon(true);
+                            activityThread.start();
+                            
                         } else {
                             ConnectoMod.LOGGER.info("[Connecto] [Config] Unknown packet 0x{} (len={}) – ignoring.", Integer.toHexString(packetId), data.length);
                         }
 
                     } else {
-                        // BotState.PLAY – drain all packets; server-side keepalive suppressed by our mixin
+                        // BotState.PLAY – drain all packets and echo KeepAlives
+                        // KeepAlive in Play state is 0x26 in 1.21.4 (Serverbound: 0x18)
+                        // It's safer to just let the mixin suppress timeout.
                     }
                 }
 
@@ -197,6 +229,42 @@ public class EmbeddedBotManager {
         dos.writeLong(uuid.getMostSignificantBits());
         dos.writeLong(uuid.getLeastSignificantBits());
         writeFrame(out, p.toByteArray());
+    }
+
+    private static void sendClientInformation(OutputStream out, int compressionThreshold) throws IOException {
+        ByteArrayOutputStream p = new ByteArrayOutputStream();
+        writeString(p, "en_us");
+        p.write(10); // View Distance
+        writeVarInt(p, 0); // Chat mode: Full
+        p.write(1); // Chat colors: true
+        p.write(0x7F); // Skin parts: All
+        writeVarInt(p, 1); // Main hand: Right
+        p.write(0); // Text filtering: false
+        p.write(1); // Allow server listings: true
+        
+        // MC 1.21.2+ adds Particle Status (VarInt) at the end!
+        // 0 = All, 1 = Decreased, 2 = Minimal
+        writeVarInt(p, 0);
+
+        sendPacket(out, compressionThreshold, C_CONFIG_CLIENT_INFO, p.toByteArray());
+    }
+
+    private static float botYaw = 0.0f;
+
+    private static void sendActivity(OutputStream out, int compressionThreshold) throws IOException {
+        // 1. Send Serverbound Swing packet (0x36 in 1.21.4)
+        ByteArrayOutputStream p = new ByteArrayOutputStream();
+        writeVarInt(p, 0); // Main hand
+        sendPacket(out, compressionThreshold, 0x36, p.toByteArray()); 
+        
+        // 2. Send Serverbound Move Player Rot packet (0x1C in 1.21.4) to simulate looking around
+        p = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(p);
+        botYaw = (botYaw + 15.0f) % 360.0f; // Spin slightly
+        dos.writeFloat(botYaw); // Yaw
+        dos.writeFloat(0.0f);   // Pitch
+        dos.writeBoolean(true); // onGround
+        sendPacket(out, compressionThreshold, 0x1C, p.toByteArray());
     }
 
     private static void sendPacket(OutputStream out, int compressionThreshold, int packetId, byte[] payload) throws IOException {

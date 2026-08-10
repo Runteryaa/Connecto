@@ -7,6 +7,7 @@
     "ServerCommonPacketListenerImplMixin",
     "ConnectionAccessor"
   ],
+  "refmap": "connecto-refmap.json",
   "injectors": {
     "defaultRequire": 1
   }

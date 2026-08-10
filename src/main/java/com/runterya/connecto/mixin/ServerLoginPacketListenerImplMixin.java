@@ -32,16 +32,17 @@ public abstract class ServerLoginPacketListenerImplMixin {
     @org.jetbrains.annotations.Nullable
     private com.mojang.authlib.GameProfile authenticatedProfile;
 
-    @org.spongepowered.asm.mixin.injection.ModifyVariable(method = "verifyLoginAndFinishConnectionSetup", at = @At("HEAD"), argsOnly = true)
-    private com.mojang.authlib.GameProfile connecto$forceWhitelistedProfileInVerify(com.mojang.authlib.GameProfile profile) {
+    @Inject(method = "verifyLoginAndFinishConnectionSetup", at = @At("RETURN"))
+    private void connecto$forceProfileAfterVerify(com.mojang.authlib.GameProfile profile, CallbackInfo ci) {
+        // Run after all other verify logic to ensure Floodgate hasn't hijacked the UUID.
+        // We force the authenticatedProfile to have the correct deterministic offline UUID and name.
         if (this.connecto$currentConnectingUser != null && ConnectoConfig.getInstance().isWhitelisted(this.connecto$currentConnectingUser)) {
             java.util.UUID offlineUuid = net.minecraft.core.UUIDUtil.createOfflinePlayerUUID(this.connecto$currentConnectingUser);
-            com.mojang.authlib.GameProfile correctProfile = new com.mojang.authlib.GameProfile(offlineUuid, this.connecto$currentConnectingUser);
-            ConnectoMod.LOGGER.info("[Connecto] verify INTERCEPTED! Original Profile: {} -> Forced Profile: {}", profile != null ? profile.id() : "null", correctProfile.id());
-            this.authenticatedProfile = correctProfile; // Overwrite the field too!
-            return correctProfile;
+            if (this.authenticatedProfile == null || !this.authenticatedProfile.id().equals(offlineUuid)) {
+                this.authenticatedProfile = new com.mojang.authlib.GameProfile(offlineUuid, this.connecto$currentConnectingUser);
+                ConnectoMod.LOGGER.info("[Connecto] Forced GameProfile in verifyLoginAndFinishConnectionSetup for whitelisted bot: {} -> {}", this.connecto$currentConnectingUser, offlineUuid);
+            }
         }
-        return profile;
     }
 
     @Redirect(

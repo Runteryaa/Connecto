@@ -35,7 +35,7 @@ process.on('uncaughtException', (err) => {
 const CONFIG = {
   host: 'runterya.play.hosting',    // ← your server host
   port: 25565,                      // default Minecraft port
-  username: 'Secret_AFK_Bot',      // must match whitelist in connecto.json
+  username: 'AFK',      // must match whitelist in connecto.json
   version: '1.21.11',               // Mineflayer protocol definition baseline
   protocolVersion: 775,             // Protocol version for Minecraft 26.1.2
   auth: 'offline',                  // offline-mode session
