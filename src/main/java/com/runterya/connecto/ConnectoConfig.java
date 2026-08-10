@@ -33,7 +33,7 @@ public class ConnectoConfig {
     /**
      * Exact usernames that are allowed to bypass Mojang auth.
      */
-    public List<String> whitelist = new ArrayList<>(List.of("Secret_AFK_Bot", "Runterya"));
+    public List<String> whitelist = new ArrayList<>(List.of("uptime", "Runterya"));
 
     /** Legacy config fallback for backwards compatibility */
     @SerializedName("botUsernames")
@@ -53,10 +53,14 @@ public class ConnectoConfig {
      * Beta feature: Automatically launch an embedded TCP client when server starts
      * to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7 without auto-shutdown.
      */
-    public boolean autoConnectBot = true;
+    public boolean uptimeBot = true;
+
+    /** Legacy toggle fallback for backwards compatibility */
+    @SerializedName("autoConnectBot")
+    private Boolean legacyAutoConnectBot;
 
     /** Username for the auto-connecting embedded TCP bot */
-    public String botName = "Secret_AFK_Bot";
+    public String botName = "uptime";
 
     // ---- Singleton / loading ----
 
@@ -78,7 +82,7 @@ public class ConnectoConfig {
             if (legacyBotUsernames != null && !legacyBotUsernames.isEmpty()) {
                 whitelist = new ArrayList<>(legacyBotUsernames);
             } else {
-                whitelist = new ArrayList<>(List.of("Secret_AFK_Bot", "Runterya"));
+                whitelist = new ArrayList<>(List.of("uptime", "Runterya"));
             }
         }
         if (whitelistPrefix == null) {
@@ -88,8 +92,11 @@ public class ConnectoConfig {
                 whitelistPrefix = "";
             }
         }
+        if (legacyAutoConnectBot != null) {
+            uptimeBot = legacyAutoConnectBot;
+        }
         if (botName == null || botName.isBlank()) {
-            botName = "Secret_AFK_Bot";
+            botName = "uptime";
         }
     }
 
@@ -117,8 +124,8 @@ public class ConnectoConfig {
                 instance = new ConnectoConfig();
             }
             instance.sanitize();
-            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', autoConnectBot={}",
-                    file, instance.enabled, instance.whitelist, instance.whitelistPrefix, instance.autoConnectBot);
+            LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
+                    file, instance.enabled, instance.whitelist, instance.whitelistPrefix, instance.uptimeBot);
         } catch (Exception e) {
             LOGGER.error("[Connecto] Failed to read config – using defaults", e);
             instance = new ConnectoConfig();

@@ -89,12 +89,12 @@ java -version
 {
   "enabled": true,
   "whitelist": [
-    "Secret_AFK_Bot",
+    "uptime",
     "Runterya"
   ],
   "whitelistPrefix": "",
-  "autoConnectBot": true,
-  "botName": "Secret_AFK_Bot"
+  "uptimeBot": true,
+  "botName": "uptime"
 }
 ```
 
@@ -103,17 +103,17 @@ java -version
 | `enabled` | boolean | Master toggle. Set to `true` to enable auth bypass for whitelisted users |
 | `whitelist` | string[] | **Exact** usernames exempt from Mojang auth (case-insensitive) |
 | `whitelistPrefix` | string | Any username starting with this prefix is exempt. Use `"*"` to allow **all** usernames. Leave `""` to disable |
-| `autoConnectBot` | boolean | **(Beta)** Automatically launches an embedded TCP client on server startup to keep host server active 24/7 |
-| `botName` | string | **(Beta)** Username used by the embedded TCP bot |
+| `uptimeBot` | boolean | **(Beta)** Automatically launches an embedded TCP client on server startup to keep host server active 24/7 |
+| `botName` | string | **(Beta)** Username used by the embedded uptime TCP bot (defaults to `"uptime"`) |
 
 ---
 
-## ⚡ Embedded Auto-Connect TCP Bot (Beta)
+## ⚡ Embedded Auto-Connect Uptime Bot (Beta)
 
-When `"autoConnectBot": true`, Connecto automatically launches a background TCP client daemon on server startup.
+When `"uptimeBot": true`, Connecto automatically launches a background TCP client daemon on server startup connecting as `"uptime"`.
 
 **Benefits:**
-- Establishes an **actual active TCP network socket** on `127.0.0.1:<port>`.
+- Establishes an **actual active TCP network socket** on `127.0.0.1:<server_port>`.
 - Prevents hosting providers (**Play.Hosting**, Aternos, etc.) from auto-shutting down the server due to inactivity.
 - Operates 100% inside the Fabric mod — **no Node.js or `bot.js` required**.
 
