@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "connecto",
+  "version": "${version}",
+  "name": "Connecto",
+  "description": "Allows designated offline-mode bot accounts to connect to an online-mode server by bypassing Mojang session verification for whitelisted usernames.",
+  "authors": ["Runterya"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "com.runterya.connecto.ConnectoMod"
+    ]
+  },
+  "mixins": [
+    "connecto.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "~26.1.2",
+    "java": ">=25"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.runterya.connecto.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "ServerLoginPacketListenerImplMixin",
+    "ServerCommonPacketListenerImplMixin",
+    "ConnectionAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

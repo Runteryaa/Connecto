@@ -1,0 +1,13 @@
+{
+  "name": "botbypass-afk-bot",
+  "version": "1.0.0",
+  "description": "Mineflayer AFK bot that connects via offline-mode to a BotBypass-enabled online-mode server.",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.23.0"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,9 @@
+build/
+.gradle/
+.loom-cache/
+.vscode/
+node_modules/
+jdk21/
+gradle9/
+*.jar
+*.class
