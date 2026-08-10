@@ -1,8 +1,19 @@
-# Connecto — Fabric Server Mod (MC 26.1.2)
+# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+)
 
 > Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
 🤖 **Developed with AI** — Built and maintained using Google Antigravity AI agent.
+
+---
+
+## 🎮 Supported Minecraft Versions
+
+| Minecraft Version Range | Status | Notes |
+|---|---|---|
+| **26.1.2 / 26.x** | ✅ Tested & Fully Supported | Native target build |
+| **1.21.0 – 1.21.4** | ✅ Supported | Share modern login & network pipeline |
+| **1.20.2 – 1.20.6** | ✅ Supported | Introduces `ServerCommonPacketListenerImpl` architecture |
+| **< 1.20.1** | ❌ Unsupported | Pre-refactor legacy packet pipeline |
 
 ---
 
@@ -36,12 +47,12 @@ Connecto/
 
 | Tool | Version |
 |---|---|
-| Minecraft | **26.1.2** |
-| Fabric Loader | 0.19.3 |
+| Minecraft | **26.1.2** (Compatible with 1.20.2+) |
+| Fabric Loader | 0.19.3 (≥ 0.14.22) |
 | Fabric API | 0.150.0+26.1.2 |
 | Fabric Loom | 1.15 |
 | Gradle | 9.4.0 |
-| Java | **25** (JDK 25 required) |
+| Java | **25** (JDK 25 required for build) |
 | Mappings | **Unobfuscated** (MC 26.1+ is unobfuscated natively) |
 
 ---
@@ -69,7 +80,7 @@ java -version
 4. Restart the server.
 
 ### Server requirements
-- Fabric Loader ≥ 0.19.3 installed on the server
+- Fabric Loader ≥ 0.14.22 installed on the server
 - Fabric API jar present in `mods/`
 - `online-mode=true` in `server.properties` (the mod works *alongside* online-mode, not by disabling it)
 
