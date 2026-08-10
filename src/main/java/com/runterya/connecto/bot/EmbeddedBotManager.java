@@ -1,11 +1,9 @@
 package com.runterya.connecto.bot;
 
-import com.runterya.connecto.ConnectoConfig;
 import com.runterya.connecto.ConnectoMod;
 import net.minecraft.core.UUIDUtil;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,7 +53,8 @@ public class EmbeddedBotManager {
             try {
                 ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting to 127.0.0.1:{} as '{}'...", port, botName);
                 currentSocket = new Socket("127.0.0.1", port);
-                currentSocket.setSoTimeout(30000);
+                currentSocket.setSoTimeout(0); // 0 = infinite read timeout (no SocketTimeoutException)
+                currentSocket.setTcpNoDelay(true);
 
                 OutputStream out = currentSocket.getOutputStream();
                 InputStream in = currentSocket.getInputStream();
@@ -66,14 +65,35 @@ public class EmbeddedBotManager {
                 // 2. Send Login Start Packet (ID 0x00)
                 sendLoginStart(out, botName);
 
-                ConnectoMod.LOGGER.info("[Connecto] ✓ Embedded TCP bot connected successfully! Session is now active on 127.0.0.1:{}.", port);
+                ConnectoMod.LOGGER.info("[Connecto] ✓ Embedded TCP bot connected successfully! Active TCP session on 127.0.0.1:{}.", port);
 
-                // 3. Keep TCP socket open and read incoming server packets
-                byte[] buffer = new byte[1024];
-                while (RUNNING.get() && !currentSocket.isClosed()) {
-                    int bytesRead = in.read(buffer);
-                    if (bytesRead == -1) break; // Server closed stream
-                    Thread.sleep(100);
+                // 3. Start background reader thread to drain incoming bytes and prevent buffer overflow
+                Thread readerThread = new Thread(() -> {
+                    byte[] buffer = new byte[2048];
+                    try {
+                        while (RUNNING.get() && !currentSocket.isClosed()) {
+                            int read = in.read(buffer);
+                            if (read == -1) break;
+                        }
+                    } catch (Exception ignored) {}
+                }, "Connecto-EmbeddedBot-Reader");
+                readerThread.setDaemon(true);
+                readerThread.start();
+
+                // 4. Keep TCP connection active permanently
+                long lastPing = System.currentTimeMillis();
+                while (RUNNING.get() && !currentSocket.isClosed() && readerThread.isAlive()) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastPing >= 15000) {
+                        try {
+                            out.write(0); // Flush 1-byte heartbeat
+                            out.flush();
+                        } catch (Exception e) {
+                            break; // Connection lost
+                        }
+                        lastPing = now;
+                    }
+                    Thread.sleep(1000);
                 }
 
             } catch (InterruptedException e) {
