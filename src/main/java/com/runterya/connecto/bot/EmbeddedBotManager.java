@@ -37,12 +37,14 @@ public class EmbeddedBotManager {
     private static final int S_LOGIN_SET_COMPRESSION = 0x03;
     // Login state – Client → Server
     private static final int C_LOGIN_ACKNOWLEDGED    = 0x03;
-    // Configuration state – Server → Client
-    private static final int S_CONFIG_FINISH = 0x02;
-    private static final int S_CONFIG_PING   = 0x05; // Ping (4-byte int), needs Pong before server sends Finish
-    // Configuration state – Client → Server
-    private static final int C_CONFIG_FINISH = 0x03;
-    private static final int C_CONFIG_PONG   = 0x05; // Pong (echo the 4-byte int from Ping)
+    // Configuration state – Server → Client (MC 26.x / protocol 775, +1 shift vs 1.21.4)
+    private static final int S_CONFIG_FINISH             = 0x03; // was 0x02 in 1.21.4
+    private static final int S_CONFIG_PING               = 0x05; // was 0x04 in 1.21.4
+    private static final int S_CONFIG_SELECT_KNOWN_PACKS = 0x0E; // was 0x0D in 1.21.4
+    // Configuration state – Client → Server (unchanged from 1.21.4)
+    private static final int C_CONFIG_FINISH             = 0x03; // Acknowledge Finish Configuration
+    private static final int C_CONFIG_PONG               = 0x05; // Pong (echo int from Ping)
+    private static final int C_CONFIG_SELECT_KNOWN_PACKS = 0x07; // Known Packs response
 
     private enum BotState { LOGIN, CONFIGURATION, PLAY }
 
@@ -133,17 +135,20 @@ public class EmbeddedBotManager {
 
                     } else if (state == BotState.CONFIGURATION) {
                         if (packetId == S_CONFIG_PING) {
-                            // Echo the 4-byte int back as a Pong so server proceeds to Finish Configuration
+                            // Echo the 4-byte int back as a Pong so server proceeds
                             byte[] pingPayload = Arrays.copyOfRange(data, off[0], data.length);
                             ConnectoMod.LOGGER.info("[Connecto] [Config] Ping received. Sending Pong...");
                             sendPacket(out, compressionThreshold, C_CONFIG_PONG, pingPayload);
+                        } else if (packetId == S_CONFIG_SELECT_KNOWN_PACKS) {
+                            // Respond with empty known packs (0 entries) so server sends registry data and proceeds
+                            ConnectoMod.LOGGER.info("[Connecto] [Config] Select Known Packs received. Responding with empty list...");
+                            sendPacket(out, compressionThreshold, C_CONFIG_SELECT_KNOWN_PACKS, writeVarIntBytes(0));
                         } else if (packetId == S_CONFIG_FINISH) {
-                            ConnectoMod.LOGGER.info("[Connecto] ✓ Configuration done! Acknowledging Finish Configuration...");
+                            ConnectoMod.LOGGER.info("[Connecto] ✓ Finish Configuration received! Acknowledging...");
                             sendPacket(out, compressionThreshold, C_CONFIG_FINISH, new byte[0]);
                             state = BotState.PLAY;
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Uptime bot is IN-GAME! Server will not auto-pause.");
                         } else {
-                            // Log unknown config packets so we can identify the right IDs
                             ConnectoMod.LOGGER.info("[Connecto] [Config] Unknown packet 0x{} (len={}) – ignoring.", Integer.toHexString(packetId), data.length);
                         }
 
