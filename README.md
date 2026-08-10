@@ -2,6 +2,8 @@
 
 > Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
+🤖 **Developed with AI** — Built and maintained using Google Antigravity AI agent.
+
 ---
 
 ## 📁 Project Layout
@@ -136,6 +138,12 @@ The offline UUID is derived with `UUIDUtil.createOfflinePlayerUUID("<name>")`, i
 - **Keep `whitelist` usernames secret.** Anyone who knows a whitelisted username can join without a Mojang account.
 - Consider combining with a **whitelist** (`/whitelist on`) and adding the user to the whitelist using their offline UUID so no other player can steal that slot.
 - The `secretPrefix` feature is convenient but reduces security surface if many names share the prefix.
+
+---
+
+## 🤖 Acknowledgments
+
+This project was built with the assistance of **AI** (Google Antigravity AI).
 
 ---
 
