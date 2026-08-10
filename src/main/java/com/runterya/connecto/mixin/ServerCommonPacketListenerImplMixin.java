@@ -1,6 +1,5 @@
 package com.runterya.connecto.mixin;
 
-import com.runterya.connecto.ConnectoConfig;
 import com.runterya.connecto.ConnectoMod;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.Connection;
@@ -13,15 +12,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Two-layer protection against keepalive timeouts for whitelisted accounts:
- *
- * Layer 1 (@Inject HEAD + cancel): Cancels keepConnectionAlive() entirely for whitelisted users
- * so keepAlivePending is never set to true and the disconnect branch is never reached.
- *
- * Layer 2 (@Redirect): Even if Layer 1 fails, intercepts the actual disconnect() call
- * within keepConnectionAlive() and skips it for whitelisted users.
- */
 @Mixin(ServerCommonPacketListenerImpl.class)
 public abstract class ServerCommonPacketListenerImplMixin {
 
@@ -37,19 +27,22 @@ public abstract class ServerCommonPacketListenerImplMixin {
         if (profile == null || profile.name() == null) return;
 
         String playerName = profile.name();
-        ConnectoMod.LOGGER.debug("[Connecto] keepConnectionAlive called for: {}", playerName);
 
-        if (!ConnectoConfig.getInstance().isWhitelisted(playerName)) return;
-
-        // Suppress keepAlive timeout for whitelisted accounts silently
-        ci.cancel();
+        // ONLY protect the embedded "uptime" bot.
+        // External whitelisted bots (like AFK mineflayer bots) MUST receive KeepAlives 
+        // from the server, otherwise they will disconnect themselves with "Timed out".
+        if ("uptime".equals(playerName)) {
+            // 1. Remove Netty's read timeout handler so the socket never closes from inactivity
+            if (((ConnectionAccessor) this.connection).connecto$getChannel().pipeline().get("timeout") != null) {
+                ((ConnectionAccessor) this.connection).connecto$getChannel().pipeline().remove("timeout");
+            }
+            
+            // 2. Cancel the server's keepalive challenge so it doesn't wait for a response
+            ci.cancel();
+        }
     }
 
-    /**
-     * Backup: if the @Inject cancel somehow doesn't prevent the disconnect,
-     * this @Redirect intercepts the actual disconnect() call within keepConnectionAlive()
-     * and skips it for the whitelisted user.
-     */
+    // Backup redirect just for "uptime" in case the above fails for some reason
     @Redirect(
         method = "keepConnectionAlive",
         at = @At(
@@ -59,12 +52,9 @@ public abstract class ServerCommonPacketListenerImplMixin {
     )
     private void connecto$blockTimeoutDisconnect(ServerCommonPacketListenerImpl instance, Component message) {
         GameProfile profile = ((ServerCommonPacketListenerImplMixin) (Object) instance).playerProfile();
-        if (profile != null && profile.name() != null) {
-            String playerName = profile.name();
-            if (ConnectoConfig.getInstance().isWhitelisted(playerName)) {
-                ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for whitelisted user: {}", playerName);
-                return; // Do NOT disconnect the user
-            }
+        if (profile != null && "uptime".equals(profile.name())) {
+            ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for embedded bot.");
+            return; // Do NOT disconnect the embedded bot
         }
         instance.disconnect(message);
     }
