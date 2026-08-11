@@ -32,7 +32,7 @@ public class ConnectoMod implements ModInitializer {
             if (config.enabled && config.uptimeBot) {
                 int port = server.getPort();
                 if (port <= 0) port = 25565;
-                EmbeddedBotManager.start(port, config.botName);
+                EmbeddedBotManager.start(port, config.uptimeBotName);
             }
         });
 
@@ -43,7 +43,7 @@ public class ConnectoMod implements ModInitializer {
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (config.enabled && config.uptimeBot) {
                 for (net.minecraft.server.level.ServerPlayer player : server.getPlayerList().getPlayers()) {
-                    if (player.getName().getString().equals(config.botName)) {
+                    if (player.getName().getString().equals(config.uptimeBotName)) {
                         player.resetLastActionTime();
                     }
                 }

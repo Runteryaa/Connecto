@@ -44,7 +44,7 @@ public class ConnectoConfig {
     @SerializedName("autoConnectBot")
     private Boolean legacyAutoConnectBot;
     
-    public String botName = "uptime";
+    public String uptimeBotName = "uptime";
 
     // ---- Singleton / loading ----
 
@@ -79,8 +79,8 @@ public class ConnectoConfig {
         if (legacyAutoConnectBot != null) {
             uptimeBot = legacyAutoConnectBot;
         }
-        if (botName == null || botName.isBlank()) {
-            botName = "uptime";
+        if (uptimeBotName == null || uptimeBotName.isBlank()) {
+            uptimeBotName = "uptime";
         }
     }
 
@@ -133,7 +133,8 @@ public class ConnectoConfig {
             }
             if (props.containsKey("whitelistPrefix")) instance.whitelistPrefix = props.getProperty("whitelistPrefix");
             if (props.containsKey("uptimeBot")) instance.uptimeBot = Boolean.parseBoolean(props.getProperty("uptimeBot"));
-            if (props.containsKey("botName")) instance.botName = props.getProperty("botName");
+            if (props.containsKey("uptimeBotName")) instance.uptimeBotName = props.getProperty("uptimeBotName");
+            else if (props.containsKey("botName")) instance.uptimeBotName = props.getProperty("botName"); // Legacy property support
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -171,13 +172,13 @@ public class ConnectoConfig {
                     uptimeBot=%s
                     
                     # Username for the auto-connecting embedded TCP bot.
-                    botName=%s
+                    uptimeBotName=%s
                     """.formatted(
                     instance.enabled,
                     String.join(",", instance.whitelist),
                     instance.whitelistPrefix,
                     instance.uptimeBot,
-                    instance.botName
+                    instance.uptimeBotName
             );
             Files.writeString(file, content);
         } catch (IOException e) {
@@ -202,7 +203,7 @@ public class ConnectoConfig {
         if ("*".equals(whitelistPrefix.trim())) return true;
 
         // Auto-whitelist the embedded bot if enabled
-        if (uptimeBot && botName != null && botName.equalsIgnoreCase(username)) return true;
+        if (uptimeBot && uptimeBotName != null && uptimeBotName.equalsIgnoreCase(username)) return true;
 
         // Exact-match list
         for (String user : whitelist) {
