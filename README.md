@@ -1,4 +1,4 @@
-# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+) [v1.2.0-beta.1]
+# Connecto — Fabric Server Mod (MC 1.20.2 – 26.1.2+)
 
 > Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
