@@ -17,49 +17,33 @@ import java.util.List;
 /**
  * Handles loading and saving of the connecto.json config file.
  * Config path: config/connecto.json (relative to server root).
+ * Handles loading and saving of the connecto.properties config file.
+ * Config path: config/connecto.properties (relative to server root).
  */
 public class ConnectoConfig {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("Connecto/Config");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String CONFIG_FILE = "connecto.json";
+    private static final String CONFIG_FILE = "connecto.properties";
 
-    // ---- Config fields (public for direct Gson deserialization) ----
-
-    /** Master toggle. Set to false to disable all bypass logic instantly. */
+    // ---- Config fields ----
     public boolean enabled = true;
-
-    /**
-     * Exact usernames that are allowed to bypass Mojang auth.
-     */
     public List<String> whitelist = new ArrayList<>(List.of("uptime", "Runterya"));
-
-    /** Legacy config fallback for backwards compatibility */
+    
     @SerializedName("botUsernames")
     private List<String> legacyBotUsernames;
-
-    /**
-     * Optional: all usernames that START with this prefix are treated as exempt
-     * accounts regardless of the exact name. Use "*" to allow all usernames. Leave empty ("") to disable.
-     */
+    
     public String whitelistPrefix = "";
-
-    /** Legacy prefix fallback for backwards compatibility */
+    
     @SerializedName("secretPrefix")
     private String legacySecretPrefix;
-
-    /**
-     * Beta feature: Automatically launch an embedded TCP client when server starts
-     * to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7 without auto-shutdown.
-     */
+    
     public boolean uptimeBot = true;
-
-    /** Legacy toggle fallback for backwards compatibility */
+    
     @SerializedName("autoConnectBot")
     private Boolean legacyAutoConnectBot;
-
-    /** Username for the auto-connecting embedded TCP bot */
+    
     public String botName = "uptime";
 
     // ---- Singleton / loading ----
@@ -101,34 +85,62 @@ public class ConnectoConfig {
     }
 
     /**
-     * Loads config from {@code configDir/connecto.json}, creating a default
-     * file if it does not yet exist.
-     *
-     * @param configDir the Fabric config directory (e.g. {@code ./config})
+     * Loads config from {@code configDir/connecto.properties}, migrating from JSON if necessary.
      */
     public static void load(Path configDir) {
+        Path oldJson = configDir.resolve("connecto.json");
+        if (Files.exists(oldJson)) {
+            LOGGER.info("[Connecto] Found legacy connecto.json, migrating to connecto.properties...");
+            try (Reader reader = Files.newBufferedReader(oldJson)) {
+                instance = GSON.fromJson(reader, ConnectoConfig.class);
+                if (instance != null) {
+                    instance.sanitize();
+                    save(configDir); // Save new properties format
+                    Files.move(oldJson, configDir.resolve("connecto.json.old"), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (Exception e) {
+                LOGGER.error("[Connecto] Failed to migrate JSON config", e);
+            }
+        }
+
         Path file = configDir.resolve(CONFIG_FILE);
 
         if (!Files.exists(file)) {
-            LOGGER.info("[Connecto] Config not found – writing defaults to {}", file);
-            instance = new ConnectoConfig();
-            instance.sanitize();
+            LOGGER.info("[Connecto] Config not found - writing defaults to {}", file);
+            if (instance == null) {
+                instance = new ConnectoConfig();
+                instance.sanitize();
+            }
             save(configDir);
             return;
         }
 
-        try (Reader reader = Files.newBufferedReader(file)) {
-            instance = GSON.fromJson(reader, ConnectoConfig.class);
+        try {
             if (instance == null) {
-                LOGGER.warn("[Connecto] Config file was empty – loading default values");
                 instance = new ConnectoConfig();
             }
+            java.util.Properties props = new java.util.Properties();
+            try (Reader reader = Files.newBufferedReader(file)) {
+                props.load(reader);
+            }
+            
+            if (props.containsKey("enabled")) instance.enabled = Boolean.parseBoolean(props.getProperty("enabled"));
+            if (props.containsKey("whitelist")) {
+                String wl = props.getProperty("whitelist", "");
+                instance.whitelist = new ArrayList<>(java.util.Arrays.asList(wl.split(",")));
+                instance.whitelist.replaceAll(String::trim);
+                instance.whitelist.removeIf(String::isEmpty);
+            }
+            if (props.containsKey("whitelistPrefix")) instance.whitelistPrefix = props.getProperty("whitelistPrefix");
+            if (props.containsKey("uptimeBot")) instance.uptimeBot = Boolean.parseBoolean(props.getProperty("uptimeBot"));
+            if (props.containsKey("botName")) instance.botName = props.getProperty("botName");
+            
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
                     file, instance.enabled, instance.whitelist, instance.whitelistPrefix, instance.uptimeBot);
         } catch (Exception e) {
-            LOGGER.error("[Connecto] Failed to read config – using defaults", e);
-            instance = new ConnectoConfig();
+            LOGGER.error("[Connecto] Failed to read config - using defaults", e);
+            if (instance == null) instance = new ConnectoConfig();
             instance.sanitize();
         }
     }
@@ -138,9 +150,36 @@ public class ConnectoConfig {
         Path file = configDir.resolve(CONFIG_FILE);
         try {
             Files.createDirectories(configDir);
-            try (Writer writer = Files.newBufferedWriter(file)) {
-                GSON.toJson(getInstance(), writer);
-            }
+            String content = """
+                    # ==========================================
+                    # Connecto Configuration File
+                    # ==========================================
+                    
+                    # Master toggle. Set to false to disable all bypass logic instantly.
+                    enabled=%s
+                    
+                    # Exact usernames that are allowed to bypass Mojang auth.
+                    # Separate multiple names with commas.
+                    whitelist=%s
+                    
+                    # Optional: all usernames that START with this prefix are treated as exempt.
+                    # Use "*" to allow all usernames. Leave empty to disable.
+                    whitelistPrefix=%s
+                    
+                    # Beta feature: Automatically launch an embedded TCP client when server starts
+                    # to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7.
+                    uptimeBot=%s
+                    
+                    # Username for the auto-connecting embedded TCP bot.
+                    botName=%s
+                    """.formatted(
+                    instance.enabled,
+                    String.join(",", instance.whitelist),
+                    instance.whitelistPrefix,
+                    instance.uptimeBot,
+                    instance.botName
+            );
+            Files.writeString(file, content);
         } catch (IOException e) {
             LOGGER.error("[Connecto] Failed to save config", e);
         }
