@@ -48,6 +48,7 @@ public class ConnectoConfig {
     // New fields for NAT loopback/external connection
     public String botConnectIp = "127.0.0.1";
     public int botConnectPort = 25565;
+    public String relayProxyUrl = "";
 
     // ---- Singleton / loading ----
 
@@ -145,6 +146,7 @@ public class ConnectoConfig {
             if (props.containsKey("botConnectPort")) {
                 try { instance.botConnectPort = Integer.parseInt(props.getProperty("botConnectPort")); } catch (NumberFormatException ignored) {}
             }
+            if (props.containsKey("relayProxyUrl")) instance.relayProxyUrl = props.getProperty("relayProxyUrl");
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -185,12 +187,17 @@ public class ConnectoConfig {
                     # Username for the auto-connecting embedded TCP bot.
                     uptimeBotName=%s
                     
-                    # If your bot does not prevent sleep try setting this to your server's PUBLIC IP (e.g. server.play.hosting).
+                    # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
+                    # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
                     # This will route the bot's traffic through the internet (NAT Loopback) and trick the host into thinking there is external traffic.
                     botConnectIp=%s
                     
-                    # The port the internal bot connects to. By default Minecraft uses 25565 port. -1 means it will automatically detect the server's port.
+                    # The port the internal bot connects to. -1 means it will automatically detect the server's port.
                     botConnectPort=%s
+                    
+                    # Multi-Tenant Relay Proxy URL (e.g., wss://connecto-relay.onrender.com)
+                    # If set, the bot will route traffic through this WebSocket proxy to bypass host anti-SSRF protections.
+                    relayProxyUrl=%s
                     """.formatted(
                     instance.enabled,
                     String.join(",", instance.whitelist),
@@ -198,7 +205,8 @@ public class ConnectoConfig {
                     instance.uptimeBot,
                     instance.uptimeBotName,
                     instance.botConnectIp,
-                    instance.botConnectPort
+                    instance.botConnectPort,
+                    instance.relayProxyUrl == null ? "" : instance.relayProxyUrl
             );
             Files.writeString(file, content);
         } catch (IOException e) {

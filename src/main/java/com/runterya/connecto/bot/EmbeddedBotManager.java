@@ -30,6 +30,7 @@ public class EmbeddedBotManager {
     private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
     private static Thread workerThread = null;
     private static volatile Socket currentSocket = null;
+    private static volatile WebSocketStreamAdapter currentWsAdapter = null;
 
     // Login state – Server → Client
     private static final int S_LOGIN_DISCONNECT      = 0x00;
@@ -58,7 +59,12 @@ public class EmbeddedBotManager {
         workerThread = new Thread(() -> runBotLoop(ip, port, botName), "Connecto-EmbeddedBot");
         workerThread.setDaemon(true);
         workerThread.start();
-        ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on {}:{}.", botName, ip, port);
+        String proxyUrl = com.runterya.connecto.ConnectoConfig.getInstance().relayProxyUrl;
+        if (proxyUrl != null && !proxyUrl.isBlank()) {
+            ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on {}:{} via WebSocket Proxy: {}", botName, ip, port, proxyUrl);
+        } else {
+            ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on {}:{}.", botName, ip, port);
+        }
     }
 
     public static boolean isRunning() {
@@ -72,6 +78,11 @@ public class EmbeddedBotManager {
             try { s.close(); } catch (Exception ignored) {}
             currentSocket = null;
         }
+        WebSocketStreamAdapter ws = currentWsAdapter;
+        if (ws != null) {
+            try { ws.close(); } catch (Exception ignored) {}
+            currentWsAdapter = null;
+        }
         if (workerThread != null) {
             workerThread.interrupt();
             workerThread = null;
@@ -82,14 +93,27 @@ public class EmbeddedBotManager {
     private static void runBotLoop(String ip, int port, String botName) {
         while (RUNNING.get()) {
             try {
-                ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting to {}:{} as '{}'...", ip, port, botName);
-                Socket socket = new Socket(ip, port);
-                socket.setSoTimeout(0);
-                socket.setTcpNoDelay(true);
-                currentSocket = socket;
-
-                InputStream in = socket.getInputStream();
-                OutputStream out = socket.getOutputStream();
+                String proxyUrl = com.runterya.connecto.ConnectoConfig.getInstance().relayProxyUrl;
+                InputStream in;
+                OutputStream out;
+                boolean isWs = proxyUrl != null && !proxyUrl.isBlank();
+                
+                if (isWs) {
+                    String fullUrl = proxyUrl + "?host=" + ip + "&port=" + port;
+                    ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting via WebSocket Proxy {}...", proxyUrl);
+                    WebSocketStreamAdapter adapter = new WebSocketStreamAdapter(fullUrl);
+                    currentWsAdapter = adapter;
+                    in = adapter.getInputStream();
+                    out = adapter.getOutputStream();
+                } else {
+                    ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting to {}:{} as '{}'...", ip, port, botName);
+                    Socket socket = new Socket(ip, port);
+                    socket.setSoTimeout(0);
+                    socket.setTcpNoDelay(true);
+                    currentSocket = socket;
+                    in = socket.getInputStream();
+                    out = socket.getOutputStream();
+                }
 
                 // Compression state
                 int compressionThreshold = -1; // -1 = disabled
@@ -102,7 +126,10 @@ public class EmbeddedBotManager {
 
                 BotState state = BotState.LOGIN;
 
-                while (RUNNING.get() && !socket.isClosed()) {
+                while (RUNNING.get()) {
+                    if (isWs && currentWsAdapter.isClosed()) break;
+                    if (!isWs && currentSocket.isClosed()) break;
+                    
                     // Read length-prefixed packet
                     int packetLen = readVarInt(in);
                     if (packetLen <= 0) continue;
