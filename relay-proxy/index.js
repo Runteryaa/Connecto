@@ -7,14 +7,14 @@ const PORT = process.env.PORT || 10000;
 // Create HTTP server for health checks & Render binding
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Connecto Multi-Tenant Relay Proxy is Active & Healthy!');
+    res.end('Connecto Relay Proxy: https://github.com/Runteryaa/Connecto!');
 });
 
 // Create WebSocket server attached to HTTP server
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws, req) => {
-    // Parse target host and port from URL query parameters (e.g., ?host=runterya.play.hosting&port=25565)
+    // Parse target host and port from URL query parameters (e.g., ?host=example.play.hosting&port=25565)
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const targetHost = url.searchParams.get('host');
     const targetPort = parseInt(url.searchParams.get('port') || '25565', 10);

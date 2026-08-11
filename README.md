@@ -2,7 +2,7 @@
 
 > Allows designated offline-mode accounts/users to join an **online-mode** Fabric server by bypassing Mojang session verification **only** for whitelisted usernames.
 
-🤖 **Developed with AI** — Built and maintained using Google Antigravity AI agent.
+AI used to make this mod
 
 ---
 

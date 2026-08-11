@@ -94,9 +94,10 @@ public class EmbeddedBotManager {
         while (RUNNING.get()) {
             try {
                 String proxyUrl = com.runterya.connecto.ConnectoConfig.getInstance().relayProxyUrl;
+                boolean useRelay = com.runterya.connecto.ConnectoConfig.getInstance().relayProxy;
                 InputStream in;
                 OutputStream out;
-                boolean isWs = proxyUrl != null && !proxyUrl.isBlank();
+                boolean isWs = useRelay && proxyUrl != null && !proxyUrl.isBlank();
                 
                 if (isWs) {
                     String cleanUrl = proxyUrl.replaceFirst("^(wss?://)", "");

@@ -22,9 +22,7 @@ Make sure this repository (or just this `relay-proxy` folder) is pushed to your 
 
 ### 3. Get Your Proxy URL
 Once deployed, Render will give you a URL like:
-`https://connecto-relay.onrender.com`
+`connecto-relay.onrender.com`
 
-Replace `https://` with `wss://` for WebSocket usage:
-`wss://connecto-relay.onrender.com`
 
 Pass this URL into the `Connecto` mod configuration!
