@@ -165,19 +165,7 @@ public class EmbeddedBotManager {
                             state = BotState.PLAY;
                             ConnectoMod.LOGGER.info("[Connecto] ✓ Uptime bot is IN-GAME! Server will not auto-pause.");
                             
-                            // 3. Start a background thread to send periodic activity (swing arm) to trick AFK/sleep plugins
-                            final int currentCompression = compressionThreshold;
-                            Thread activityThread = new Thread(() -> {
-                                try {
-                                    while (RUNNING.get() && currentSocket != null && !currentSocket.isClosed()) {
-                                        Thread.sleep(10000); // every 10s
-                                        sendActivity(out, currentCompression);
-                                    }
-                                } catch (Exception e) {}
-                            });
-                            activityThread.setDaemon(true);
-                            activityThread.start();
-                            
+                            // Activity is now handled via ServerTickEvents in ConnectoMod.java
                         } else {
                             ConnectoMod.LOGGER.info("[Connecto] [Config] Unknown packet 0x{} (len={}) – ignoring.", Integer.toHexString(packetId), data.length);
                         }
@@ -249,23 +237,7 @@ public class EmbeddedBotManager {
         sendPacket(out, compressionThreshold, C_CONFIG_CLIENT_INFO, p.toByteArray());
     }
 
-    private static float botYaw = 0.0f;
 
-    private static void sendActivity(OutputStream out, int compressionThreshold) throws IOException {
-        // 1. Send Serverbound Swing packet (0x36 in 1.21.4)
-        ByteArrayOutputStream p = new ByteArrayOutputStream();
-        writeVarInt(p, 0); // Main hand
-        sendPacket(out, compressionThreshold, 0x36, p.toByteArray()); 
-        
-        // 2. Send Serverbound Move Player Rot packet (0x1C in 1.21.4) to simulate looking around
-        p = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(p);
-        botYaw = (botYaw + 15.0f) % 360.0f; // Spin slightly
-        dos.writeFloat(botYaw); // Yaw
-        dos.writeFloat(0.0f);   // Pitch
-        dos.writeBoolean(true); // onGround
-        sendPacket(out, compressionThreshold, 0x1C, p.toByteArray());
-    }
 
     private static void sendPacket(OutputStream out, int compressionThreshold, int packetId, byte[] payload) throws IOException {
         ByteArrayOutputStream p = new ByteArrayOutputStream();

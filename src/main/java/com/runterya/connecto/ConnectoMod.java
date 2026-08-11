@@ -39,5 +39,15 @@ public class ConnectoMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             EmbeddedBotManager.stop();
         });
+
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (config.enabled && config.uptimeBot) {
+                for (net.minecraft.server.level.ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    if (player.getName().getString().equals(config.botName)) {
+                        player.resetLastActionTime();
+                    }
+                }
+            }
+        });
     }
 }
