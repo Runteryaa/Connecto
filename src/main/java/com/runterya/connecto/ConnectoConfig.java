@@ -195,7 +195,7 @@ public class ConnectoConfig {
                     # The port the internal bot connects to. -1 means it will automatically detect the server's port.
                     botConnectPort=%s
                     
-                    # Multi-Tenant Relay Proxy URL (e.g., wss://connecto-relay.onrender.com)
+                    # Multi-Tenant Relay Proxy URL (e.g., connecto-00le.onrender.com)
                     # If set, the bot will route traffic through this WebSocket proxy to bypass host anti-SSRF protections.
                     relayProxyUrl=%s
                     """.formatted(

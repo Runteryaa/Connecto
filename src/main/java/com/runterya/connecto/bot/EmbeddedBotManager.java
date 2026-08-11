@@ -99,8 +99,9 @@ public class EmbeddedBotManager {
                 boolean isWs = proxyUrl != null && !proxyUrl.isBlank();
                 
                 if (isWs) {
-                    String fullUrl = proxyUrl + "?host=" + ip + "&port=" + port;
-                    ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting via WebSocket Proxy {}...", proxyUrl);
+                    String cleanUrl = proxyUrl.replaceFirst("^(wss?://)", "");
+                    String fullUrl = "wss://" + cleanUrl + "?host=" + ip + "&port=" + port;
+                    ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting via WebSocket Proxy {}...", fullUrl);
                     WebSocketStreamAdapter adapter = new WebSocketStreamAdapter(fullUrl);
                     currentWsAdapter = adapter;
                     in = adapter.getInputStream();
