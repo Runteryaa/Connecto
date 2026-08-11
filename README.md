@@ -15,36 +15,6 @@ AI used to make this mod
 | **1.20.2 – 1.20.6** | ✅ Supported | Introduces `ServerCommonPacketListenerImpl` architecture |
 | **< 1.20.1** | ❌ Unsupported | Pre-refactor legacy packet pipeline |
 
----
-
-## 📁 Project Layout
-
-```
-Connecto/
-├── build.gradle                        # Fabric Loom build script
-├── gradle.properties                   # Version pins (MC, Loader, API)
-├── settings.gradle                     # Root project name
-├── gradle/wrapper/
-│   └── gradle-wrapper.properties       # Gradle 9.4.0
-├── config/
-│   └── connecto.json                   # Server-side config (auto-generated)
-├── src/main/
-│   ├── java/com/runterya/connecto/
-│   │   ├── ConnectoMod.java            # Mod initializer
-│   │   ├── ConnectoConfig.java         # Config loader/saver (Gson)
-│   │   ├── bot/
-│   │   │   └── EmbeddedBotManager.java # Auto-connecting TCP bot daemon (BETA)
-│   │   └── mixin/
-│   │       └── ServerLoginPacketListenerImplMixin.java  ← core logic
-│   └── resources/
-│       ├── fabric.mod.json
-│       └── connecto.mixins.json
-├── bot.js                              # Mineflayer AFK test client (Node.js)
-└── package.json                        # npm manifest
-```
-
----
-
 ## ⚙️ Toolchain
 
 | Tool | Version |
@@ -77,9 +47,10 @@ java -version
 ## 🖥️ Installing on the Server
 
 1. Copy `build/libs/connecto-1.2.0-beta.1.jar` into the server's `mods/` folder.
-2. Start the server once to generate `config/connecto.json`.
+2. Start the server once to generate `config/connecto.properties`.
 3. Set `"enabled": true` in `config/connecto.json` and add your username to `whitelist`.
-4. Restart the server.
+4. If you want uptimeBot to make your server 7/24, you can enable and configure it inside the config.
+5. Restart the server.
 
 ---
 
