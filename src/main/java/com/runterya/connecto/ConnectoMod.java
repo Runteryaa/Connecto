@@ -30,9 +30,13 @@ public class ConnectoMod implements ModInitializer {
         // Register Fabric lifecycle events to start/stop embedded TCP bot
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (config.enabled && config.uptimeBot) {
-                int port = server.getPort();
+                int port = config.botConnectPort;
+                if (port <= 0) port = server.getPort();
                 if (port <= 0) port = 25565;
-                EmbeddedBotManager.start(port, config.uptimeBotName);
+                String ip = config.botConnectIp;
+                if (ip == null || ip.isBlank()) ip = "127.0.0.1";
+                
+                EmbeddedBotManager.start(ip, port, config.uptimeBotName);
             }
         });
 

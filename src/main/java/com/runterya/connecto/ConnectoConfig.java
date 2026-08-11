@@ -39,12 +39,15 @@ public class ConnectoConfig {
     @SerializedName("secretPrefix")
     private String legacySecretPrefix;
     
-    public boolean uptimeBot = true;
-    
+    public boolean uptimeBot = false;
     @SerializedName("autoConnectBot")
     private Boolean legacyAutoConnectBot;
     
     public String uptimeBotName = "uptime";
+    
+    // New fields for NAT loopback/external connection
+    public String botConnectIp = "127.0.0.1";
+    public int botConnectPort = -1;
 
     // ---- Singleton / loading ----
 
@@ -81,6 +84,9 @@ public class ConnectoConfig {
         }
         if (uptimeBotName == null || uptimeBotName.isBlank()) {
             uptimeBotName = "uptime";
+        }
+        if (botConnectIp == null || botConnectIp.isBlank()) {
+            botConnectIp = "127.0.0.1";
         }
     }
 
@@ -135,6 +141,10 @@ public class ConnectoConfig {
             if (props.containsKey("uptimeBot")) instance.uptimeBot = Boolean.parseBoolean(props.getProperty("uptimeBot"));
             if (props.containsKey("uptimeBotName")) instance.uptimeBotName = props.getProperty("uptimeBotName");
             else if (props.containsKey("botName")) instance.uptimeBotName = props.getProperty("botName"); // Legacy property support
+            if (props.containsKey("botConnectIp")) instance.botConnectIp = props.getProperty("botConnectIp");
+            if (props.containsKey("botConnectPort")) {
+                try { instance.botConnectPort = Integer.parseInt(props.getProperty("botConnectPort")); } catch (NumberFormatException ignored) {}
+            }
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -168,18 +178,28 @@ public class ConnectoConfig {
                     whitelistPrefix=%s
                     
                     # Beta feature: Automatically launch an embedded TCP client when server starts
-                    # to keep hosting providers active 24/7.
+                    # to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7.
                     # Note: Depending on the host's prevention systems, this internal bot might not work on every server.
                     uptimeBot=%s
                     
                     # Username for the auto-connecting embedded TCP bot.
                     uptimeBotName=%s
+                    
+                    # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
+                    # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
+                    # This will route the bot's traffic through the internet (NAT Loopback) and trick the host into thinking there is external traffic.
+                    botConnectIp=%s
+                    
+                    # The port the internal bot connects to. -1 means it will automatically detect the server's port.
+                    botConnectPort=%s
                     """.formatted(
                     instance.enabled,
                     String.join(",", instance.whitelist),
                     instance.whitelistPrefix,
                     instance.uptimeBot,
-                    instance.uptimeBotName
+                    instance.uptimeBotName,
+                    instance.botConnectIp,
+                    instance.botConnectPort
             );
             Files.writeString(file, content);
         } catch (IOException e) {

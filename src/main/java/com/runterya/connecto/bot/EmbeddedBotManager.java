@@ -52,13 +52,13 @@ public class EmbeddedBotManager {
 
     private enum BotState { LOGIN, CONFIGURATION, PLAY }
 
-    public static synchronized void start(int port, String botName) {
+    public static synchronized void start(String ip, int port, String botName) {
         if (RUNNING.get()) return;
         RUNNING.set(true);
-        workerThread = new Thread(() -> runBotLoop(port, botName), "Connecto-EmbeddedBot");
+        workerThread = new Thread(() -> runBotLoop(ip, port, botName), "Connecto-EmbeddedBot");
         workerThread.setDaemon(true);
         workerThread.start();
-        ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on port {}.", botName, port);
+        ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on {}:{}.", botName, ip, port);
     }
 
     public static boolean isRunning() {
@@ -79,11 +79,11 @@ public class EmbeddedBotManager {
         ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager stopped.");
     }
 
-    private static void runBotLoop(int port, String botName) {
+    private static void runBotLoop(String ip, int port, String botName) {
         while (RUNNING.get()) {
             try {
-                ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting to 127.0.0.1:{} as '{}'...", port, botName);
-                Socket socket = new Socket("127.0.0.1", port);
+                ConnectoMod.LOGGER.info("[Connecto] Embedded TCP bot connecting to {}:{} as '{}'...", ip, port, botName);
+                Socket socket = new Socket(ip, port);
                 socket.setSoTimeout(0);
                 socket.setTcpNoDelay(true);
                 currentSocket = socket;
@@ -95,7 +95,7 @@ public class EmbeddedBotManager {
                 int compressionThreshold = -1; // -1 = disabled
 
                 // 1. Handshake
-                sendHandshake(out, port);
+                sendHandshake(out, ip, port);
                 // 2. Login Start
                 sendLoginStart(out, botName);
                 ConnectoMod.LOGGER.info("[Connecto] Handshake sent. Waiting for Login Success...");
@@ -197,11 +197,11 @@ public class EmbeddedBotManager {
 
     // ---- Packet senders ----
 
-    private static void sendHandshake(OutputStream out, int port) throws IOException {
+    private static void sendHandshake(OutputStream out, String ip, int port) throws IOException {
         ByteArrayOutputStream p = new ByteArrayOutputStream();
         writeVarInt(p, 0x00);        // Packet ID: Handshake
         writeVarInt(p, 775);         // Protocol version (MC 26.1.2)
-        writeString(p, "127.0.0.1");
+        writeString(p, ip);
         p.write((port >> 8) & 0xFF);
         p.write(port & 0xFF);
         writeVarInt(p, 2);           // Next state: Login
