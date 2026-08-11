@@ -10,7 +10,7 @@ Make sure this repository (or just this `relay-proxy` folder) is pushed to your 
 ### 2. Deploy on Render.com
 1. Go to [Render.com](https://render.com) and sign up / log in.
 2. Click **New +** -> **Web Service**.
-3. Connect your GitHub repository.
+3. Connect your GitHub repository. or select Public Repository and use this repository. 
 4. Fill in the following settings:
    - **Name**: `connecto-relay` (or whatever you prefer)
    - **Root Directory**: `relay-proxy`
