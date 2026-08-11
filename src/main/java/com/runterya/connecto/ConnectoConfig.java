@@ -47,7 +47,7 @@ public class ConnectoConfig {
     
     // New fields for NAT loopback/external connection
     public String botConnectIp = "127.0.0.1";
-    public int botConnectPort = -1;
+    public int botConnectPort = 25565;
 
     // ---- Singleton / loading ----
 
@@ -185,12 +185,11 @@ public class ConnectoConfig {
                     # Username for the auto-connecting embedded TCP bot.
                     uptimeBotName=%s
                     
-                    # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
-                    # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
+                    # If your bot does not prevent sleep try setting this to your server's PUBLIC IP (e.g. server.play.hosting).
                     # This will route the bot's traffic through the internet (NAT Loopback) and trick the host into thinking there is external traffic.
                     botConnectIp=%s
                     
-                    # The port the internal bot connects to. -1 means it will automatically detect the server's port.
+                    # The port the internal bot connects to. By default Minecraft uses 25565 port. -1 means it will automatically detect the server's port.
                     botConnectPort=%s
                     """.formatted(
                     instance.enabled,
