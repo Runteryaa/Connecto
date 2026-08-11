@@ -169,6 +169,7 @@ public class ConnectoConfig {
                     
                     # Beta feature: Automatically launch an embedded TCP client when server starts
                     # to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7.
+                    # Note: Depending on the host's prevention systems, this internal bot might not work on every server.
                     uptimeBot=%s
                     
                     # Username for the auto-connecting embedded TCP bot.
