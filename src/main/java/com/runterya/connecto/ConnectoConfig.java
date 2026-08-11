@@ -49,7 +49,7 @@ public class ConnectoConfig {
     public String botConnectIp = "127.0.0.1";
     public int botConnectPort = 25565;
     public boolean relayProxy = true;
-    public String relayProxyUrl = "connecto-00le.onrender.com";
+    public String relayProxyUrl = "connectorelay.onrender.com";
 
     // ---- Singleton / loading ----
 
