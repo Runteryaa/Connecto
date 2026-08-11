@@ -38,17 +38,17 @@ public class EmbeddedBotManager {
     // Login state – Client → Server
     private static final int C_LOGIN_ACKNOWLEDGED    = 0x03;
     // Configuration state – Server → Client (MC 1.21.4 / protocol 775)
-    private static final int S_CONFIG_FINISH             = 0x02;
-    private static final int S_CONFIG_KEEPALIVE          = 0x03;
-    private static final int S_CONFIG_PING               = 0x04;
-    private static final int S_CONFIG_KNOWN_PACKS        = 0x0C;
+    private static final int S_CONFIG_FINISH             = 0x03;
+    private static final int S_CONFIG_KEEPALIVE          = 0x04;
+    private static final int S_CONFIG_PING               = 0x05;
+    private static final int S_CONFIG_KNOWN_PACKS        = 0x0E;
 
     // Configuration state – Client → Server (MC 1.21.4 / protocol 775)
     private static final int C_CONFIG_CLIENT_INFO        = 0x00;
-    private static final int C_CONFIG_FINISH             = 0x02;
-    private static final int C_CONFIG_KEEPALIVE          = 0x03;
-    private static final int C_CONFIG_PONG               = 0x04;
-    private static final int C_CONFIG_KNOWN_PACKS        = 0x06;
+    private static final int C_CONFIG_FINISH             = 0x03;
+    private static final int C_CONFIG_KEEPALIVE          = 0x04;
+    private static final int C_CONFIG_PONG               = 0x05;
+    private static final int C_CONFIG_KNOWN_PACKS        = 0x07;
 
     private enum BotState { LOGIN, CONFIGURATION, PLAY }
 
