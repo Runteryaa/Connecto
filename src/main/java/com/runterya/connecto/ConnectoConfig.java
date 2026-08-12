@@ -199,7 +199,19 @@ public class ConnectoConfig {
                     whitelistPrefix=%s
                     
                     # --------------------------------------------------------------------
-                    # [2] Uptime Bot & Server Keep-Alive Settings
+                    # [2] Offline Player Skin Settings
+                    # --------------------------------------------------------------------
+                    
+                    # Automatically fetch and display official Mojang skins for offline/bypassed players.
+                    fetchOfflineSkins=%s
+                    
+                    # Default Minecraft username to use as fallback skin for offline players.
+                    # If fetchOfflineSkins is true, this skin will be used for players without an official Mojang skin.
+                    # If fetchOfflineSkins is false, this skin will be used for all offline players. Leave empty to disable.
+                    defaultOfflineSkinUser=%s
+                    
+                    # --------------------------------------------------------------------
+                    # [3] Uptime Bot & Network Proxy Settings
                     # --------------------------------------------------------------------
                     
                     # Automatically launch an embedded TCP client when server starts
@@ -217,17 +229,6 @@ public class ConnectoConfig {
                     # Delay (in seconds) before the uptime bot automatically attempts to reconnect after getting kicked or disconnected.
                     reconnectDelaySeconds=%s
                     
-                    # --------------------------------------------------------------------
-                    # [3] Security Alerts & Audit Settings
-                    # --------------------------------------------------------------------
-                    
-                    # Enable in-game & console security alerts when an unauthorized user attempts to join using a protected bot or whitelisted name.
-                    securityAlerts=%s
-                    
-                    # --------------------------------------------------------------------
-                    # [4] Network Connection & Proxy Settings
-                    # --------------------------------------------------------------------
-                    
                     # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
                     # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
                     botConnectIp=%s
@@ -243,31 +244,26 @@ public class ConnectoConfig {
                     relayProxyUrl=%s
                     
                     # --------------------------------------------------------------------
-                    # [5] Offline Player Skin Settings
+                    # [4] Security Alerts & Audit Settings
                     # --------------------------------------------------------------------
                     
-                    # Automatically fetch and display official Mojang skins for offline/bypassed players.
-                    fetchOfflineSkins=%s
-                    
-                    # Default Minecraft username to use as fallback skin for offline players.
-                    # If fetchOfflineSkins is true, this skin will be used for players without an official Mojang skin.
-                    # If fetchOfflineSkins is false, this skin will be used for all offline players. Leave empty to disable.
-                    defaultOfflineSkinUser=%s
+                    # Enable in-game & console security alerts when an unauthorized user attempts to join using a protected bot or whitelisted name.
+                    securityAlerts=%s
                     """.formatted(
                     instance.enabled,
                     String.join(",", instance.whitelist),
                     instance.whitelistPrefix,
+                    instance.fetchOfflineSkins,
+                    instance.defaultOfflineSkinUser == null ? "" : instance.defaultOfflineSkinUser,
                     instance.uptimeBot,
                     instance.uptimeBotMode == null ? "ALWAYS" : instance.uptimeBotMode,
                     instance.uptimeBotName,
                     instance.reconnectDelaySeconds,
-                    instance.securityAlerts,
                     instance.botConnectIp,
                     instance.botConnectPort,
                     instance.relayProxy,
                     instance.relayProxyUrl == null ? "" : instance.relayProxyUrl,
-                    instance.fetchOfflineSkins,
-                    instance.defaultOfflineSkinUser == null ? "" : instance.defaultOfflineSkinUser
+                    instance.securityAlerts
             );
             Files.writeString(file, content);
         } catch (IOException e) {
