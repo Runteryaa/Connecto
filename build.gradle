@@ -50,3 +50,243 @@ jar {
         rename { "${it}_${project.archives_base_name}" }
     }
 }
+task printMethods {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.commands.CommandSourceStack")
+            clazz.methods.findAll { it.name.toLowerCase().contains("perm") }.each {
+                println "METHOD: " + it.name + " " + it.parameterTypes
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printMethods2 {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.commands.CommandSourceStack")
+            clazz.methods.each {
+                if (it.returnType == boolean.class) {
+                    println "BOOLEAN_METHOD: " + it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printMethods3 {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.commands.CommandSourceStack")
+            clazz.methods.each {
+                if (it.parameterTypes.length == 1 && it.parameterTypes[0] == int.class) {
+                    println "INT_PARAM_METHOD: " + it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printMethods4 {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.commands.CommandSourceStack")
+            clazz.methods.each {
+                if (it.name.toLowerCase().contains("perm")) {
+                    println "ALL_PERM: " + it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printSuperClasses {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.commands.CommandSourceStack")
+            println "METHODS OF COMMANDSOURCESTACK AND SUPERS: "
+            clazz.methods.each {
+                if (it.name == "hasPermission" || it.name == "hasPermissionLevel") {
+                    println it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printPermissionLevel {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.server.permissions.PermissionLevel")
+            println "PERMISSION LEVEL ENUM: "
+            clazz.enumConstants.each {
+                println it
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printPermissionLevelMethods {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.server.permissions.PermissionLevel")
+            println "PERMISSION LEVEL METHODS: "
+            clazz.methods.each {
+                println it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printFabricPermissions {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.fabricmc.fabric.api.permission.v1.Permissions")
+            println "FABRIC PERMISSIONS METHODS: "
+            clazz.methods.each {
+                println it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printIntReturnMethods {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.commands.CommandSourceStack")
+            clazz.methods.each {
+                if (it.returnType == int.class) {
+                    println "INT_RETURN: " + it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task decompileOpCommand {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def is = urlClassLoader.getResourceAsStream("net/minecraft/server/commands/OpCommand.class")
+            def bytes = is.bytes
+            new File("OpCommand.class").bytes = bytes
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task findPermissionsJar {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.fabricmc.fabric.api.permission.v1.Permissions")
+            println "Permissions is in: " + clazz.protectionDomain.codeSource.location
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task decompilePermissions {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def is = urlClassLoader.getResourceAsStream("me/lucko/fabric/api/permissions/v0/Permissions.class")
+            if (is == null) {
+                println "LuckPerms Permissions class not found"
+            } else {
+                println "LuckPerms Permissions class exists!"
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task testLucko {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("me.lucko.fabric.api.permissions.v0.Permissions")
+            println "LUCKO EXISTS"
+        } catch (Exception e) {
+            println "LUCKO DOES NOT EXIST"
+        }
+    }
+}
+task printPermissionSet {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.server.permissions.PermissionSet")
+            println "PermissionSet methods: "
+            clazz.methods.each {
+                println it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printPlayerListOp {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.server.players.PlayerList")
+            clazz.methods.each {
+                if (it.name == "isOp") {
+                    println "isOp: " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printPlayerMethods {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.world.entity.player.Player")
+            clazz.methods.each {
+                if (it.returnType.name == "net.minecraft.world.NameAndId") {
+                    println "NameAndId method: " + it.name
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
