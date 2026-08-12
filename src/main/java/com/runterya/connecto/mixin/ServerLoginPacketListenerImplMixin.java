@@ -43,8 +43,9 @@ public abstract class ServerLoginPacketListenerImplMixin {
                 ConnectoMod.LOGGER.info("[Connecto] Forced GameProfile in verifyLoginAndFinishConnectionSetup for whitelisted bot: {} -> {}", this.connecto$currentConnectingUser, offlineUuid);
             }
         }
-        if (ConnectoConfig.getInstance().fetchOfflineSkins && this.authenticatedProfile != null) {
-            com.runterya.connecto.skin.SkinFetcher.applySkinIfMissing(this.authenticatedProfile);
+        if (this.authenticatedProfile != null) {
+            ConnectoConfig cfg = ConnectoConfig.getInstance();
+            com.runterya.connecto.skin.SkinFetcher.processSkin(this.authenticatedProfile, cfg.fetchOfflineSkins, cfg.defaultOfflineSkinUser);
         }
     }
 

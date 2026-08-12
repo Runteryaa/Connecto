@@ -27,7 +27,7 @@ public class SkinFetcher {
             .connectTimeout(Duration.ofSeconds(4))
             .build();
 
-    public static void applySkinIfMissing(GameProfile profile) {
+    public static void processSkin(GameProfile profile, boolean fetchOwnSkin, String defaultSkinUser) {
         if (profile == null || profile.name() == null || profile.name().isBlank()) return;
 
         // If profile already has texture properties, do nothing
@@ -35,22 +35,36 @@ public class SkinFetcher {
             return;
         }
 
-        String username = profile.name();
-        String cacheKey = username.toLowerCase();
+        // 1. Try to fetch player's own skin if enabled
+        if (fetchOwnSkin) {
+            fetchAndApplySkinFor(profile, profile.name());
+        }
+
+        // 2. If profile still has no skin, apply default fallback skin if configured
+        if (profile.properties() != null && !profile.properties().containsKey("textures")) {
+            if (defaultSkinUser != null && !defaultSkinUser.isBlank()) {
+                fetchAndApplySkinFor(profile, defaultSkinUser);
+            }
+        }
+    }
+
+    private static void fetchAndApplySkinFor(GameProfile profile, String targetUsername) {
+        if (targetUsername == null || targetUsername.isBlank()) return;
+        String cacheKey = targetUsername.toLowerCase();
 
         // 1. Check in-memory cache
         if (SKIN_CACHE.containsKey(cacheKey)) {
             Property cachedProperty = SKIN_CACHE.get(cacheKey);
             if (cachedProperty != null) {
                 profile.properties().put("textures", cachedProperty);
-                ConnectoMod.LOGGER.info("[Connecto] Applied cached skin for offline player '{}'", username);
+                ConnectoMod.LOGGER.info("[Connecto] Applied cached skin of '{}' for player '{}'", targetUsername, profile.name());
             }
             return;
         }
 
         try {
-            // 2. Query Mojang API to get official UUID for username
-            String uuidUrl = "https://api.mojang.com/users/profiles/minecraft/" + username;
+            // 2. Query Mojang API to get official UUID for targetUsername
+            String uuidUrl = "https://api.mojang.com/users/profiles/minecraft/" + targetUsername;
             HttpRequest uuidRequest = HttpRequest.newBuilder()
                     .uri(URI.create(uuidUrl))
                     .timeout(Duration.ofSeconds(4))
@@ -59,7 +73,7 @@ public class SkinFetcher {
 
             HttpResponse<String> uuidResponse = HTTP_CLIENT.send(uuidRequest, HttpResponse.BodyHandlers.ofString());
             if (uuidResponse.statusCode() != 200 || uuidResponse.body() == null || uuidResponse.body().isBlank()) {
-                ConnectoMod.LOGGER.debug("[Connecto] No Mojang account found for username '{}' - skipping skin fetch.", username);
+                ConnectoMod.LOGGER.debug("[Connecto] No Mojang account found for username '{}' - skipping skin fetch.", targetUsername);
                 SKIN_CACHE.put(cacheKey, null); // Cache negative result to avoid repeated failed lookups
                 return;
             }
@@ -101,14 +115,14 @@ public class SkinFetcher {
                     Property textureProperty = new Property("textures", val, sig);
                     SKIN_CACHE.put(cacheKey, textureProperty);
                     profile.properties().put("textures", textureProperty);
-                    ConnectoMod.LOGGER.info("[Connecto] ✓ Successfully fetched and applied official Mojang skin for offline player '{}'", username);
+                    ConnectoMod.LOGGER.info("[Connecto] ✓ Applied skin of '{}' to offline player '{}'", targetUsername, profile.name());
                     return;
                 }
             }
-            
+
             SKIN_CACHE.put(cacheKey, null);
         } catch (Exception e) {
-            ConnectoMod.LOGGER.warn("[Connecto] Could not fetch skin for '{}': {}", username, e.getMessage());
+            ConnectoMod.LOGGER.warn("[Connecto] Could not fetch skin for '{}': {}", targetUsername, e.getMessage());
         }
     }
 }

@@ -51,6 +51,7 @@ public class ConnectoConfig {
     public boolean relayProxy = false;
     public String relayProxyUrl = "connectorelay.onrender.com";
     public boolean fetchOfflineSkins = true;
+    public String defaultOfflineSkinUser = "";
 
     // ---- Singleton / loading ----
 
@@ -151,6 +152,7 @@ public class ConnectoConfig {
             if (props.containsKey("relayProxy")) instance.relayProxy = Boolean.parseBoolean(props.getProperty("relayProxy"));
             if (props.containsKey("relayProxyUrl")) instance.relayProxyUrl = props.getProperty("relayProxyUrl");
             if (props.containsKey("fetchOfflineSkins")) instance.fetchOfflineSkins = Boolean.parseBoolean(props.getProperty("fetchOfflineSkins"));
+            if (props.containsKey("defaultOfflineSkinUser")) instance.defaultOfflineSkinUser = props.getProperty("defaultOfflineSkinUser");
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -208,6 +210,11 @@ public class ConnectoConfig {
                     
                     # Automatically fetch and display official Mojang skins for offline/bypassed players.
                     fetchOfflineSkins=%s
+                    
+                    # Default Minecraft username to use as fallback skin for offline players.
+                    # If fetchOfflineSkins is true, this skin will be used for players without an official Mojang skin.
+                    # If fetchOfflineSkins is false, this skin will be used for all offline players. Leave empty to disable.
+                    defaultOfflineSkinUser=%s
                     """.formatted(
                     instance.enabled,
                     String.join(",", instance.whitelist),
@@ -218,7 +225,8 @@ public class ConnectoConfig {
                     instance.botConnectPort,
                     instance.relayProxy,
                     instance.relayProxyUrl == null ? "" : instance.relayProxyUrl,
-                    instance.fetchOfflineSkins
+                    instance.fetchOfflineSkins,
+                    instance.defaultOfflineSkinUser == null ? "" : instance.defaultOfflineSkinUser
             );
             Files.writeString(file, content);
         } catch (IOException e) {
