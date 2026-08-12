@@ -28,11 +28,12 @@ public abstract class ServerCommonPacketListenerImplMixin {
 
         String playerName = profile.name();
 
-        boolean isBot = com.runterya.connecto.ConnectoConfig.getInstance().getUptimeBotNames().stream()
-                .anyMatch(b -> b.equalsIgnoreCase(playerName));
+        String uptimeBotName = com.runterya.connecto.ConnectoConfig.getInstance().uptimeBotName;
         
-        // ONLY protect the embedded bot(s).
-        if (isBot) {
+        // ONLY protect the embedded bot.
+        // External whitelisted bots (like AFK mineflayer bots) MUST receive KeepAlives 
+        // from the server, otherwise they will disconnect themselves with "Timed out".
+        if (playerName.equals(uptimeBotName)) {
             // 1. Remove Netty's read timeout handler so the socket never closes from inactivity
             if (((ConnectionAccessor) this.connection).connecto$getChannel().pipeline().get("timeout") != null) {
                 ((ConnectionAccessor) this.connection).connecto$getChannel().pipeline().remove("timeout");
@@ -53,10 +54,8 @@ public abstract class ServerCommonPacketListenerImplMixin {
     )
     private void connecto$blockTimeoutDisconnect(ServerCommonPacketListenerImpl instance, Component message) {
         GameProfile profile = ((ServerCommonPacketListenerImplMixin) (Object) instance).playerProfile();
-        boolean isBot = profile != null && profile.name() != null &&
-                com.runterya.connecto.ConnectoConfig.getInstance().getUptimeBotNames().stream()
-                        .anyMatch(b -> b.equalsIgnoreCase(profile.name()));
-        if (isBot) {
+        String uptimeBotName = com.runterya.connecto.ConnectoConfig.getInstance().uptimeBotName;
+        if (profile != null && profile.name() != null && profile.name().equals(uptimeBotName)) {
             ConnectoMod.LOGGER.warn("[Connecto] Blocked timeout disconnect for embedded bot.");
             return; // Do NOT disconnect the embedded bot
         }

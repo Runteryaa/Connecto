@@ -46,7 +46,7 @@ public class ConnectoCommand {
                 "§eAuth Bypass: " + (cfg.enabled ? "§aENABLED" : "§cDISABLED") + "\n" +
                 "§eUptime Bot: " + (cfg.uptimeBot ? "§aENABLED" : "§cDISABLED") + 
                 " §7(State: " + (botRunning ? "§aRUNNING" : "§cSTOPPED") + " §7- Mode: §b" + cfg.uptimeBotMode + ")\n" +
-                "§eBot Names (" + cfg.getUptimeBotNames().size() + "): §b" + String.join(", ", cfg.getUptimeBotNames()) + "\n" +
+                "§eBot Name: §b" + cfg.uptimeBotName + "\n" +
                 "§eRelay Proxy: " + (cfg.relayProxy ? "§aENABLED" : "§cDISABLED") + " §7(" + cfg.relayProxyUrl + ")\n" +
                 "§eOffline Skins: " + (cfg.fetchOfflineSkins ? "§aENABLED" : "§cDISABLED") + 
                 (cfg.defaultOfflineSkinUser.isBlank() ? "" : " §7(Default: §b" + cfg.defaultOfflineSkinUser + "§7)") + "\n" +
