@@ -16,13 +16,7 @@ public class ConnectoCommand {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(Commands.literal("connecto")
-                .requires(source -> {
-                    if (source.getEntity() == null) return true; // Console or RCON
-                    if (source.getEntity() instanceof net.minecraft.world.entity.player.Player player) {
-                        return player.hasPermissions(2);
-                    }
-                    return false;
-                }) // OP level 2
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)) // OP level 2
                 
                 .then(Commands.literal("status")
                     .executes(ctx -> showStatus(ctx.getSource())))

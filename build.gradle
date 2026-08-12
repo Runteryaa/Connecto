@@ -323,3 +323,18 @@ task printEntityMethods {
         }
     }
 }
+task readOpCommand {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def is = urlClassLoader.getResourceAsStream("net/minecraft/server/commands/OpCommand.class")
+            if (is != null) {
+                new File("OpCommand.class").bytes = is.bytes
+                println "OpCommand extracted!"
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
