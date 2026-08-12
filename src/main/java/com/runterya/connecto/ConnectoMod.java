@@ -60,8 +60,8 @@ public class ConnectoMod implements ModInitializer {
                 for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                     if (player.getName().getString().equalsIgnoreCase(config.uptimeBotName)) {
                         player.resetLastActionTime();
-                        // Nudge head rotation every 10 seconds to bypass strict Anti-AFK plugins
-                        if (config.antiAfk && server.getTickCount() % 200 == 0) {
+                        // Nudge head rotation every 10 seconds to bypass strict Anti-AFK plugins by default
+                        if (server.getTickCount() % 200 == 0) {
                             player.setYRot((player.getYRot() + 1.0f) % 360.0f);
                         }
                     }

@@ -54,7 +54,6 @@ public class ConnectoConfig {
     public String defaultOfflineSkinUser = "";
     public String uptimeBotMode = "ALWAYS";
     public int reconnectDelaySeconds = 5;
-    public boolean antiAfk = true;
     public boolean securityAlerts = true;
 
     // ---- Singleton / loading ----
@@ -161,7 +160,6 @@ public class ConnectoConfig {
             if (props.containsKey("reconnectDelaySeconds")) {
                 try { instance.reconnectDelaySeconds = Integer.parseInt(props.getProperty("reconnectDelaySeconds")); } catch (NumberFormatException ignored) {}
             }
-            if (props.containsKey("antiAfk")) instance.antiAfk = Boolean.parseBoolean(props.getProperty("antiAfk"));
             if (props.containsKey("securityAlerts")) instance.securityAlerts = Boolean.parseBoolean(props.getProperty("securityAlerts"));
             
             instance.sanitize();
@@ -219,9 +217,6 @@ public class ConnectoConfig {
                     # Delay (in seconds) before the uptime bot automatically attempts to reconnect after getting kicked or disconnected.
                     reconnectDelaySeconds=%s
                     
-                    # Enable Anti-AFK protection for the uptime bot (periodically nudges head rotation to prevent AFK kicks).
-                    antiAfk=%s
-                    
                     # --------------------------------------------------------------------
                     # [3] Security Alerts & Audit Settings
                     # --------------------------------------------------------------------
@@ -266,7 +261,6 @@ public class ConnectoConfig {
                     instance.uptimeBotMode == null ? "ALWAYS" : instance.uptimeBotMode,
                     instance.uptimeBotName,
                     instance.reconnectDelaySeconds,
-                    instance.antiAfk,
                     instance.securityAlerts,
                     instance.botConnectIp,
                     instance.botConnectPort,
