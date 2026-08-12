@@ -290,3 +290,36 @@ task printPlayerMethods {
         }
     }
 }
+task printPlayerListOpVerbose {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.server.players.PlayerList")
+            clazz.methods.each {
+                if (it.name == "isOp") {
+                    println "isOp EXACT PARAMS: "
+                    it.parameterTypes.each { pt -> println pt.name }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}
+task printEntityMethods {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def clazz = urlClassLoader.loadClass("net.minecraft.world.entity.Entity")
+            clazz.methods.each {
+                if (it.name.toLowerCase().contains("perm")) {
+                    println "ENTITY PERM METHOD: " + it.name + " " + java.util.Arrays.toString(it.parameterTypes)
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}

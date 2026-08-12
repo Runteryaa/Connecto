@@ -19,7 +19,7 @@ public class ConnectoCommand {
                 .requires(source -> {
                     if (source.getEntity() == null) return true; // Console or RCON
                     if (source.getEntity() instanceof net.minecraft.world.entity.player.Player player) {
-                        return source.getServer().getPlayerList().isOp(player.getNameAndId());
+                        return player.hasPermissions(2);
                     }
                     return false;
                 }) // OP level 2
