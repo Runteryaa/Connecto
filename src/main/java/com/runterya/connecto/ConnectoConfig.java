@@ -165,6 +165,7 @@ public class ConnectoConfig {
             if (props.containsKey("securityAlerts")) instance.securityAlerts = Boolean.parseBoolean(props.getProperty("securityAlerts"));
             
             instance.sanitize();
+            save(configDir); // Auto-update config file on disk with any missing new options
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
                     file, instance.enabled, instance.whitelist, instance.whitelistPrefix, instance.uptimeBot);
         } catch (Exception e) {
