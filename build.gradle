@@ -50,3 +50,24 @@ jar {
         rename { "${it}_${project.archives_base_name}" }
     }
 }
+task inspectAuthLib {
+    doLast {
+        def urls = configurations.compileClasspath.files.collect { it.toURI().toURL() } as URL[]
+        def urlClassLoader = new URLClassLoader(urls, this.class.classLoader)
+        try {
+            def gpClazz = urlClassLoader.loadClass("com.mojang.authlib.GameProfile")
+            println "--- GameProfile Constructors ---"
+            gpClazz.constructors.each { println it }
+            println "--- GameProfile Methods ---"
+            gpClazz.methods.each { println it.name + " : " + it.returnType.name }
+
+            def pmClazz = urlClassLoader.loadClass("com.mojang.authlib.properties.PropertyMap")
+            println "--- PropertyMap Constructors ---"
+            pmClazz.constructors.each { println it }
+            println "--- PropertyMap Methods ---"
+            pmClazz.methods.each { println it.name + " : " + it.returnType.name }
+        } catch (Exception e) {
+            e.printStackTrace()
+        }
+    }
+}

@@ -49,7 +49,7 @@ public abstract class ServerLoginPacketListenerImplMixin {
         }
         if (this.authenticatedProfile != null) {
             ConnectoConfig cfg = ConnectoConfig.getInstance();
-            com.runterya.connecto.skin.SkinFetcher.processSkin(this.authenticatedProfile, cfg.fetchOfflineSkins, cfg.defaultOfflineSkinUser);
+            this.authenticatedProfile = com.runterya.connecto.skin.SkinFetcher.processSkin(this.authenticatedProfile, cfg.fetchOfflineSkins, cfg.defaultOfflineSkinUser);
         }
     }
 
