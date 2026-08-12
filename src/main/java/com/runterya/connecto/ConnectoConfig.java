@@ -175,30 +175,37 @@ public class ConnectoConfig {
         }
     }
 
-    /** Persists the current config instance to disk. */
+    /** Persists the current config instance to disk with updated comments and organized sections. */
     public static void save(Path configDir) {
         Path file = configDir.resolve(CONFIG_FILE);
         try {
             Files.createDirectories(configDir);
             String content = """
-                    # ==========================================
-                    # Connecto Configuration File
-                    # ==========================================
+                    # ====================================================================
+                    #                     Connecto Configuration
+                    # ====================================================================
+                    
+                    # --------------------------------------------------------------------
+                    # [1] Master Toggle & Authentication Bypass Settings
+                    # --------------------------------------------------------------------
                     
                     # Master toggle. Set to false to disable all bypass logic instantly.
                     enabled=%s
                     
                     # Exact usernames that are allowed to bypass Mojang auth.
-                    # Separate multiple names with commas.
+                    # Separate multiple names with commas (e.g. Runterya, Player2).
                     whitelist=%s
                     
                     # Optional: all usernames that START with this prefix are treated as exempt.
                     # Use "*" to allow all usernames. Leave empty to disable.
                     whitelistPrefix=%s
                     
-                    # Beta feature: Automatically launch an embedded TCP client when server starts
+                    # --------------------------------------------------------------------
+                    # [2] Uptime Bot & Server Keep-Alive Settings
+                    # --------------------------------------------------------------------
+                    
+                    # Automatically launch an embedded TCP client when server starts
                     # to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7.
-                    # Note: Depending on the host's prevention systems, this internal bot might not work on every server.
                     uptimeBot=%s
                     
                     # Operating mode for the uptime bot:
@@ -215,12 +222,19 @@ public class ConnectoConfig {
                     # Enable Anti-AFK protection for the uptime bot (periodically nudges head rotation to prevent AFK kicks).
                     antiAfk=%s
                     
+                    # --------------------------------------------------------------------
+                    # [3] Security Alerts & Audit Settings
+                    # --------------------------------------------------------------------
+                    
                     # Enable in-game & console security alerts when an unauthorized user attempts to join using a protected bot or whitelisted name.
                     securityAlerts=%s
                     
+                    # --------------------------------------------------------------------
+                    # [4] Network Connection & Proxy Settings
+                    # --------------------------------------------------------------------
+                    
                     # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
                     # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
-                    # This will route the bot's traffic through the internet (NAT Loopback) and trick the host into thinking there is external traffic.
                     botConnectIp=%s
                     
                     # The port the internal bot connects to. -1 means it will automatically detect the server's port.
@@ -232,6 +246,10 @@ public class ConnectoConfig {
                     # Multi-Tenant Relay Proxy URL (e.g., connectorelay.onrender.com)
                     # If set, the bot will route traffic through this WebSocket proxy to bypass host anti-SSRF protections.
                     relayProxyUrl=%s
+                    
+                    # --------------------------------------------------------------------
+                    # [5] Offline Player Skin Settings
+                    # --------------------------------------------------------------------
                     
                     # Automatically fetch and display official Mojang skins for offline/bypassed players.
                     fetchOfflineSkins=%s
