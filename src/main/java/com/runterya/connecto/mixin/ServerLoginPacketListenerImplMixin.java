@@ -71,6 +71,11 @@ public abstract class ServerLoginPacketListenerImplMixin {
             boolean isBotName = this.connecto$currentConnectingUser.equalsIgnoreCase(cfg.uptimeBotName);
             boolean isTokenValid = EmbeddedBotManager.isEmbeddedBotToken(this.connecto$currentConnectingUser, this.connecto$currentConnectingUuid);
             
+            // Immediately update bot status when a real player starts logging in
+            if (!isBotName && server != null) {
+                server.execute(() -> ConnectoMod.checkAndUpdateBotStatus(server));
+            }
+
             // Security audit alert: External player trying to use bot's name
             if (isBotName && !isTokenValid) {
                 ConnectoMod.LOGGER.warn("[Connecto Security Audit] External user attempted connection with protected bot name '{}'. Token invalid/missing.", this.connecto$currentConnectingUser);

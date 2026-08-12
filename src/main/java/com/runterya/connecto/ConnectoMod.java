@@ -37,6 +37,7 @@ public class ConnectoMod implements ModInitializer {
 
         // Server lifecycle events
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            com.runterya.connecto.skin.SkinFetcher.preFetchDefaultSkin(config.defaultOfflineSkinUser);
             checkAndUpdateBotStatus(server);
         });
 
@@ -57,6 +58,11 @@ public class ConnectoMod implements ModInitializer {
         // Heartbeat tick to prevent timeout & AFK kicks for the internal bot
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (config.enabled && config.uptimeBot) {
+                // Periodic SMART mode state check every 1 second (20 ticks)
+                if (server.getTickCount() % 20 == 0) {
+                    checkAndUpdateBotStatus(server);
+                }
+
                 for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                     if (player.getName().getString().equalsIgnoreCase(config.uptimeBotName)) {
                         player.resetLastActionTime();

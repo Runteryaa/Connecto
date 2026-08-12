@@ -58,6 +58,8 @@ public class ConnectoCommand {
 
     private static int reloadConfig(CommandSourceStack source) {
         ConnectoConfig.load(FabricLoader.getInstance().getConfigDir());
+        ConnectoConfig cfg = ConnectoConfig.getInstance();
+        com.runterya.connecto.skin.SkinFetcher.preFetchDefaultSkin(cfg.defaultOfflineSkinUser);
         MinecraftServer server = source.getServer();
         ConnectoMod.checkAndUpdateBotStatus(server);
         source.sendSuccess(() -> Component.literal("§a[Connecto] Configuration reloaded successfully!"), true);

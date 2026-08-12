@@ -31,6 +31,35 @@ public class SkinFetcher {
             .connectTimeout(Duration.ofSeconds(4))
             .build();
 
+    private static volatile Property PREFETCHED_DEFAULT_SKIN = null;
+    private static volatile String PREFETCHED_DEFAULT_USER = null;
+
+    public static void preFetchDefaultSkin(String defaultSkinUser) {
+        if (defaultSkinUser == null || defaultSkinUser.isBlank()) {
+            PREFETCHED_DEFAULT_SKIN = null;
+            PREFETCHED_DEFAULT_USER = null;
+            return;
+        }
+
+        if (defaultSkinUser.equalsIgnoreCase(PREFETCHED_DEFAULT_USER) && PREFETCHED_DEFAULT_SKIN != null) {
+            return;
+        }
+
+        Thread fetchThread = new Thread(() -> {
+            ConnectoMod.LOGGER.info("[Connecto] Pre-fetching default skin for username '{}'...", defaultSkinUser);
+            Property skin = fetchSkinFor(defaultSkinUser);
+            if (skin != null) {
+                PREFETCHED_DEFAULT_SKIN = skin;
+                PREFETCHED_DEFAULT_USER = defaultSkinUser;
+                ConnectoMod.LOGGER.info("[Connecto] ✓ Successfully pre-fetched and cached default skin of '{}'", defaultSkinUser);
+            } else {
+                ConnectoMod.LOGGER.warn("[Connecto] Could not pre-fetch default skin for username '{}'", defaultSkinUser);
+            }
+        }, "Connecto-SkinPreFetcher");
+        fetchThread.setDaemon(true);
+        fetchThread.start();
+    }
+
     public static GameProfile processSkin(GameProfile profile, boolean fetchOwnSkin, String defaultSkinUser) {
         if (profile == null || profile.name() == null || profile.name().isBlank()) return profile;
 
@@ -46,9 +75,13 @@ public class SkinFetcher {
             skinProperty = fetchSkinFor(profile.name());
         }
 
-        // 2. If profile still has no skin, apply default fallback skin if configured
-        if (skinProperty == null && defaultSkinUser != null && !defaultSkinUser.isBlank()) {
-            skinProperty = fetchSkinFor(defaultSkinUser);
+        // 2. If profile still has no skin, apply pre-fetched default skin if available
+        if (skinProperty == null) {
+            if (PREFETCHED_DEFAULT_SKIN != null) {
+                skinProperty = PREFETCHED_DEFAULT_SKIN;
+            } else if (defaultSkinUser != null && !defaultSkinUser.isBlank()) {
+                skinProperty = fetchSkinFor(defaultSkinUser);
+            }
         }
 
         if (skinProperty != null) {
