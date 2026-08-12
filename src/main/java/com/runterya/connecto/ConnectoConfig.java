@@ -45,11 +45,12 @@ public class ConnectoConfig {
     
     public String uptimeBotName = "uptime";
     
-    // New fields for NAT loopback/external connection
+    // New fields for NAT loopback/external connection & skin fetching
     public String botConnectIp = "127.0.0.1";
     public int botConnectPort = 25565;
-    public boolean relayProxy = true;
+    public boolean relayProxy = false;
     public String relayProxyUrl = "connectorelay.onrender.com";
+    public boolean fetchOfflineSkins = true;
 
     // ---- Singleton / loading ----
 
@@ -149,6 +150,7 @@ public class ConnectoConfig {
             }
             if (props.containsKey("relayProxy")) instance.relayProxy = Boolean.parseBoolean(props.getProperty("relayProxy"));
             if (props.containsKey("relayProxyUrl")) instance.relayProxyUrl = props.getProperty("relayProxyUrl");
+            if (props.containsKey("fetchOfflineSkins")) instance.fetchOfflineSkins = Boolean.parseBoolean(props.getProperty("fetchOfflineSkins"));
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -181,33 +183,31 @@ public class ConnectoConfig {
                     # Use "*" to allow all usernames. Leave empty to disable.
                     whitelistPrefix=%s
                     
-
-
-
-                    # Automatically launch an embedded TCP client when server starts
-                    # To keep hosting providers active 24/7.
+                    # Beta feature: Automatically launch an embedded TCP client when server starts
+                    # to keep hosting providers (Play.Hosting, Aternos, etc.) active 24/7.
                     # Note: Depending on the host's prevention systems, this internal bot might not work on every server.
-		    # If it does not work please use relayProxy.
                     uptimeBot=%s
                     
+                    # Username for the auto-connecting embedded TCP bot.
                     uptimeBotName=%s
-
+                    
                     # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
-		    # If local connection does not work please use your domain (eg., example.play.hosting).
+                    # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
+                    # This will route the bot's traffic through the internet (NAT Loopback) and trick the host into thinking there is external traffic.
                     botConnectIp=%s
                     
-                    # The port the internal bot connects to. By default Minecraft uses 25565 port.
-		    # -1 means it will automatically detect the server's port but not always reliable.
+                    # The port the internal bot connects to. -1 means it will automatically detect the server's port.
                     botConnectPort=%s
-
-                    # Set to true to route the uptime bot's traffic through the WebSocket relay proxy.
-		    # Enable if your server still goes to sleep
+                    
+                    # Set to true to route the bot's traffic through the WebSocket relay proxy.
                     relayProxy=%s
-
+                    
                     # Multi-Tenant Relay Proxy URL (e.g., connecto-00le.onrender.com)
                     # If set, the bot will route traffic through this WebSocket proxy to bypass host anti-SSRF protections.
-		    # If you want to host your proxy server please check https://github.com/Runteryaa/Connecto/wiki/Relay-Proxy
                     relayProxyUrl=%s
+                    
+                    # Automatically fetch and display official Mojang skins for offline/bypassed players.
+                    fetchOfflineSkins=%s
                     """.formatted(
                     instance.enabled,
                     String.join(",", instance.whitelist),
@@ -217,7 +217,8 @@ public class ConnectoConfig {
                     instance.botConnectIp,
                     instance.botConnectPort,
                     instance.relayProxy,
-                    instance.relayProxyUrl == null ? "" : instance.relayProxyUrl
+                    instance.relayProxyUrl == null ? "" : instance.relayProxyUrl,
+                    instance.fetchOfflineSkins
             );
             Files.writeString(file, content);
         } catch (IOException e) {
