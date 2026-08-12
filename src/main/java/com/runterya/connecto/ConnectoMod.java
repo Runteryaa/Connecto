@@ -73,7 +73,7 @@ public class ConnectoMod implements ModInitializer {
     public static void notifyOps(MinecraftServer server, net.minecraft.network.chat.Component message) {
         if (server == null || message == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (server.getPlayerList().isOp(player.getNameAndId())) {
+            if (player.hasPermissions(2)) {
                 player.sendSystemMessage(message);
             }
         }
