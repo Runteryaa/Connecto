@@ -52,6 +52,7 @@ public class ConnectoConfig {
     public String relayProxyUrl = "connectorelay.onrender.com";
     public boolean fetchOfflineSkins = true;
     public String defaultOfflineSkinUser = "";
+    public String uptimeBotMode = "ALWAYS";
 
     // ---- Singleton / loading ----
 
@@ -153,6 +154,7 @@ public class ConnectoConfig {
             if (props.containsKey("relayProxyUrl")) instance.relayProxyUrl = props.getProperty("relayProxyUrl");
             if (props.containsKey("fetchOfflineSkins")) instance.fetchOfflineSkins = Boolean.parseBoolean(props.getProperty("fetchOfflineSkins"));
             if (props.containsKey("defaultOfflineSkinUser")) instance.defaultOfflineSkinUser = props.getProperty("defaultOfflineSkinUser");
+            if (props.containsKey("uptimeBotMode")) instance.uptimeBotMode = props.getProperty("uptimeBotMode");
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -190,6 +192,11 @@ public class ConnectoConfig {
                     # Note: Depending on the host's prevention systems, this internal bot might not work on every server.
                     uptimeBot=%s
                     
+                    # Operating mode for the uptime bot:
+                    # 'ALWAYS' = Bot connects when server starts and stays connected 24/7.
+                    # 'SMART'  = Bot connects ONLY when 0 real players are online, and automatically disconnects when a real player joins!
+                    uptimeBotMode=%s
+                    
                     # Username for the auto-connecting embedded TCP bot.
                     uptimeBotName=%s
                     
@@ -220,6 +227,7 @@ public class ConnectoConfig {
                     String.join(",", instance.whitelist),
                     instance.whitelistPrefix,
                     instance.uptimeBot,
+                    instance.uptimeBotMode == null ? "ALWAYS" : instance.uptimeBotMode,
                     instance.uptimeBotName,
                     instance.botConnectIp,
                     instance.botConnectPort,
