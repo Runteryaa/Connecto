@@ -54,16 +54,29 @@ public class ConnectoMod implements ModInitializer {
             server.execute(() -> checkAndUpdateBotStatus(server));
         });
 
-        // Heartbeat tick to prevent timeout for the internal bot
+        // Heartbeat tick to prevent timeout & AFK kicks for the internal bot
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (config.enabled && config.uptimeBot) {
                 for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                    if (player.getName().getString().equals(config.uptimeBotName)) {
+                    if (player.getName().getString().equalsIgnoreCase(config.uptimeBotName)) {
                         player.resetLastActionTime();
+                        // Nudge head rotation every 10 seconds to bypass strict Anti-AFK plugins
+                        if (config.antiAfk && server.getTickCount() % 200 == 0) {
+                            player.setYRot((player.getYRot() + 1.0f) % 360.0f);
+                        }
                     }
                 }
             }
         });
+    }
+
+    public static void notifyOps(MinecraftServer server, net.minecraft.network.chat.Component message) {
+        if (server == null || message == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (server.getPlayerList().isOp(player.getNameAndId())) {
+                player.sendSystemMessage(message);
+            }
+        }
     }
 
     public static void checkAndUpdateBotStatus(MinecraftServer server) {

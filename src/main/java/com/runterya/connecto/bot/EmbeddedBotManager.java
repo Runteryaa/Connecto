@@ -210,7 +210,9 @@ public class EmbeddedBotManager {
 
             } catch (Exception e) {
                 if (RUNNING.get()) {
-                    ConnectoMod.LOGGER.warn("[Connecto] Embedded bot disconnected ({}). Reconnecting in 5s...", e.getMessage());
+                    int delay = com.runterya.connecto.ConnectoConfig.getInstance().reconnectDelaySeconds;
+                    if (delay <= 0) delay = 5;
+                    ConnectoMod.LOGGER.warn("[Connecto] Embedded bot disconnected ({}). Reconnecting in {}s...", e.getMessage(), delay);
                 }
             } finally {
                 Socket s = currentSocket;
@@ -220,7 +222,9 @@ public class EmbeddedBotManager {
             }
 
             if (RUNNING.get()) {
-                try { Thread.sleep(5000); } catch (InterruptedException e) { break; }
+                int delay = com.runterya.connecto.ConnectoConfig.getInstance().reconnectDelaySeconds;
+                if (delay <= 0) delay = 5;
+                try { Thread.sleep(delay * 1000L); } catch (InterruptedException e) { break; }
             }
         }
     }

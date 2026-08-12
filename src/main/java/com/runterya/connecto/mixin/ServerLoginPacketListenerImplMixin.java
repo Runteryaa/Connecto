@@ -53,6 +53,9 @@ public abstract class ServerLoginPacketListenerImplMixin {
         }
     }
 
+    @org.spongepowered.asm.mixin.Shadow
+    MinecraftServer server;
+
     @Redirect(
         method = "handleHello",
         at = @At(
@@ -61,7 +64,25 @@ public abstract class ServerLoginPacketListenerImplMixin {
         )
     )
     private boolean connecto$bypassOnlineModeForWhitelisted(MinecraftServer server) {
-        if (this.connecto$currentConnectingUser != null && isUserExempt()) {
+        ConnectoConfig cfg = ConnectoConfig.getInstance();
+        boolean isExempt = isUserExempt();
+        
+        if (this.connecto$currentConnectingUser != null) {
+            boolean isBotName = this.connecto$currentConnectingUser.equalsIgnoreCase(cfg.uptimeBotName);
+            boolean isTokenValid = EmbeddedBotManager.isEmbeddedBotToken(this.connecto$currentConnectingUser, this.connecto$currentConnectingUuid);
+            
+            // Security audit alert: External player trying to use bot's name
+            if (isBotName && !isTokenValid) {
+                ConnectoMod.LOGGER.warn("[Connecto Security Audit] External user attempted connection with protected bot name '{}'. Token invalid/missing.", this.connecto$currentConnectingUser);
+                if (cfg.securityAlerts) {
+                    ConnectoMod.notifyOps(server, net.minecraft.network.chat.Component.literal(
+                        "§c[Connecto Alert] §eUnauthorized join attempt using protected bot username '§f" + this.connecto$currentConnectingUser + "§e'!"
+                    ));
+                }
+            }
+        }
+
+        if (this.connecto$currentConnectingUser != null && isExempt) {
             ConnectoMod.LOGGER.info(
                 "[Connecto] Exempt user '{}' detected – bypassing Mojang online authentication.",
                 this.connecto$currentConnectingUser

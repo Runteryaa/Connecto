@@ -53,6 +53,9 @@ public class ConnectoConfig {
     public boolean fetchOfflineSkins = true;
     public String defaultOfflineSkinUser = "";
     public String uptimeBotMode = "ALWAYS";
+    public int reconnectDelaySeconds = 5;
+    public boolean antiAfk = true;
+    public boolean securityAlerts = true;
 
     // ---- Singleton / loading ----
 
@@ -155,6 +158,11 @@ public class ConnectoConfig {
             if (props.containsKey("fetchOfflineSkins")) instance.fetchOfflineSkins = Boolean.parseBoolean(props.getProperty("fetchOfflineSkins"));
             if (props.containsKey("defaultOfflineSkinUser")) instance.defaultOfflineSkinUser = props.getProperty("defaultOfflineSkinUser");
             if (props.containsKey("uptimeBotMode")) instance.uptimeBotMode = props.getProperty("uptimeBotMode");
+            if (props.containsKey("reconnectDelaySeconds")) {
+                try { instance.reconnectDelaySeconds = Integer.parseInt(props.getProperty("reconnectDelaySeconds")); } catch (NumberFormatException ignored) {}
+            }
+            if (props.containsKey("antiAfk")) instance.antiAfk = Boolean.parseBoolean(props.getProperty("antiAfk"));
+            if (props.containsKey("securityAlerts")) instance.securityAlerts = Boolean.parseBoolean(props.getProperty("securityAlerts"));
             
             instance.sanitize();
             LOGGER.info("[Connecto] Config loaded from {}. Enabled={}, whitelist={}, prefix='{}', uptimeBot={}",
@@ -200,6 +208,15 @@ public class ConnectoConfig {
                     # Username for the auto-connecting embedded TCP bot.
                     uptimeBotName=%s
                     
+                    # Delay (in seconds) before the uptime bot automatically attempts to reconnect after getting kicked or disconnected.
+                    reconnectDelaySeconds=%s
+                    
+                    # Enable Anti-AFK protection for the uptime bot (periodically nudges head rotation to prevent AFK kicks).
+                    antiAfk=%s
+                    
+                    # Enable in-game & console security alerts when an unauthorized user attempts to join using a protected bot or whitelisted name.
+                    securityAlerts=%s
+                    
                     # The IP address the internal bot uses to connect. Leave as 127.0.0.1 for local connection.
                     # If your host puts the server to sleep, try setting this to your server's PUBLIC IP (e.g. play.hosting.com).
                     # This will route the bot's traffic through the internet (NAT Loopback) and trick the host into thinking there is external traffic.
@@ -211,7 +228,7 @@ public class ConnectoConfig {
                     # Set to true to route the bot's traffic through the WebSocket relay proxy.
                     relayProxy=%s
                     
-                    # Multi-Tenant Relay Proxy URL (e.g., connecto-00le.onrender.com)
+                    # Multi-Tenant Relay Proxy URL (e.g., connectorelay.onrender.com)
                     # If set, the bot will route traffic through this WebSocket proxy to bypass host anti-SSRF protections.
                     relayProxyUrl=%s
                     
@@ -229,6 +246,9 @@ public class ConnectoConfig {
                     instance.uptimeBot,
                     instance.uptimeBotMode == null ? "ALWAYS" : instance.uptimeBotMode,
                     instance.uptimeBotName,
+                    instance.reconnectDelaySeconds,
+                    instance.antiAfk,
+                    instance.securityAlerts,
                     instance.botConnectIp,
                     instance.botConnectPort,
                     instance.relayProxy,
