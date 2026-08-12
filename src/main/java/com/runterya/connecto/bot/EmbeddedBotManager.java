@@ -1,7 +1,6 @@
 package com.runterya.connecto.bot;
 
 import com.runterya.connecto.ConnectoMod;
-import net.minecraft.core.UUIDUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -11,7 +10,9 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
@@ -23,6 +24,10 @@ import java.util.zip.Inflater;
  * including packet compression, so the uptime bot actually enters the game
  * and prevents the server from auto-pausing when empty.
  *
+ * Uses cryptographically secure random session UUID tokens to authenticate 
+ * the internal bot against the server, preventing external players from 
+ * spoofing the bot's username.
+ *
  * Protocol version 775 (MC 26.1.2 / 1.21.x family)
  */
 public class EmbeddedBotManager {
@@ -31,6 +36,21 @@ public class EmbeddedBotManager {
     private static Thread workerThread = null;
     private static volatile Socket currentSocket = null;
     private static volatile WebSocketStreamAdapter currentWsAdapter = null;
+    
+    // Secret session tokens for authenticating internal bot connections
+    private static final Map<String, UUID> ACTIVE_BOT_TOKENS = new ConcurrentHashMap<>();
+
+    public static void registerBotToken(String botName, UUID token) {
+        if (botName != null && token != null) {
+            ACTIVE_BOT_TOKENS.put(botName.toLowerCase().trim(), token);
+        }
+    }
+
+    public static boolean isEmbeddedBotToken(String botName, UUID profileId) {
+        if (botName == null || profileId == null) return false;
+        UUID expected = ACTIVE_BOT_TOKENS.get(botName.toLowerCase().trim());
+        return expected != null && expected.equals(profileId);
+    }
 
     // Login state – Server → Client
     private static final int S_LOGIN_DISCONNECT      = 0x00;
@@ -60,7 +80,8 @@ public class EmbeddedBotManager {
         workerThread.setDaemon(true);
         workerThread.start();
         String proxyUrl = com.runterya.connecto.ConnectoConfig.getInstance().relayProxyUrl;
-        if (proxyUrl != null && !proxyUrl.isBlank()) {
+        boolean useRelay = com.runterya.connecto.ConnectoConfig.getInstance().relayProxy;
+        if (useRelay && proxyUrl != null && !proxyUrl.isBlank()) {
             ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on {}:{} via WebSocket Proxy: {}", botName, ip, port, proxyUrl);
         } else {
             ConnectoMod.LOGGER.info("[Connecto] Embedded TCP Bot Manager started for username '{}' on {}:{}.", botName, ip, port);
@@ -73,6 +94,7 @@ public class EmbeddedBotManager {
 
     public static synchronized void stop() {
         RUNNING.set(false);
+        ACTIVE_BOT_TOKENS.clear();
         Socket s = currentSocket;
         if (s != null) {
             try { s.close(); } catch (Exception ignored) {}
@@ -117,13 +139,15 @@ public class EmbeddedBotManager {
                     out = socket.getOutputStream();
                 }
 
-                // Compression state
-                int compressionThreshold = -1; // -1 = disabled
+                int compressionThreshold = -1;
 
-                // 1. Handshake
                 sendHandshake(out, ip, port);
-                // 2. Login Start
-                sendLoginStart(out, botName);
+                
+                // Generate secret session token for authenticating internal bot
+                UUID botSessionToken = UUID.randomUUID();
+                registerBotToken(botName, botSessionToken);
+                
+                sendLoginStart(out, botName, botSessionToken);
                 ConnectoMod.LOGGER.info("[Connecto] Handshake sent. Waiting for Login Success...");
 
                 BotState state = BotState.LOGIN;
@@ -132,13 +156,11 @@ public class EmbeddedBotManager {
                     if (isWs && currentWsAdapter.isClosed()) break;
                     if (!isWs && currentSocket.isClosed()) break;
                     
-                    // Read length-prefixed packet
                     int packetLen = readVarInt(in);
                     if (packetLen <= 0) continue;
                     byte[] raw = readFully(in, packetLen);
                     if (raw == null) break;
 
-                    // Decompress if needed
                     byte[] data;
                     if (compressionThreshold >= 0) {
                         int[] off = {0};
@@ -154,55 +176,35 @@ public class EmbeddedBotManager {
 
                     int[] off = {0};
                     int packetId = readVarIntFromBytes(data, off);
-                    ConnectoMod.LOGGER.debug("[Connecto] [{}] rx packet 0x{}", state, Integer.toHexString(packetId));
 
                     if (state == BotState.LOGIN) {
                         if (packetId == S_LOGIN_SET_COMPRESSION) {
                             compressionThreshold = readVarIntFromBytes(data, off);
-                            ConnectoMod.LOGGER.info("[Connecto] Compression enabled (threshold={}).", compressionThreshold);
                         } else if (packetId == S_LOGIN_SUCCESS) {
-                            ConnectoMod.LOGGER.info("[Connecto] ✓ Login Success! Sending Login Acknowledged...");
                             sendPacket(out, compressionThreshold, C_LOGIN_ACKNOWLEDGED, new byte[0]);
                             state = BotState.CONFIGURATION;
-                            
-                            // Send Client Information immediately
                             sendClientInformation(out, compressionThreshold);
-                            
                         } else if (packetId == S_LOGIN_DISCONNECT) {
                             String reason = readString(data, off);
-                            ConnectoMod.LOGGER.warn("[Connecto] Login rejected: {}", reason);
+                            ConnectoMod.LOGGER.warn("[Connecto] Embedded bot login rejected: {}", reason);
                             break;
                         }
-
                     } else if (state == BotState.CONFIGURATION) {
                         if (packetId == S_CONFIG_PING) {
-                            // Echo the 8-byte long back as a Pong so server proceeds (in 1.21 it's a long, not an int!)
                             byte[] pingPayload = Arrays.copyOfRange(data, off[0], data.length);
-                            ConnectoMod.LOGGER.info("[Connecto] [Config] Ping received. Sending Pong...");
                             sendPacket(out, compressionThreshold, C_CONFIG_PONG, pingPayload);
                         } else if (packetId == S_CONFIG_KEEPALIVE) {
-                            // Echo the 8-byte long back
                             byte[] kaPayload = Arrays.copyOfRange(data, off[0], data.length);
                             sendPacket(out, compressionThreshold, C_CONFIG_KEEPALIVE, kaPayload);
                         } else if (packetId == S_CONFIG_KNOWN_PACKS) {
-                            // Respond with empty known packs (0 entries)
-                            ConnectoMod.LOGGER.info("[Connecto] [Config] Select Known Packs received. Responding with empty list...");
                             sendPacket(out, compressionThreshold, C_CONFIG_KNOWN_PACKS, writeVarIntBytes(0));
                         } else if (packetId == S_CONFIG_FINISH) {
-                            ConnectoMod.LOGGER.info("[Connecto] ✓ Finish Configuration received! Acknowledging...");
                             sendPacket(out, compressionThreshold, C_CONFIG_FINISH, new byte[0]);
                             state = BotState.PLAY;
-                            ConnectoMod.LOGGER.info("[Connecto] ✓ Uptime bot is IN-GAME! Server will not auto-pause.");
-                            
-                            // Activity is now handled via ServerTickEvents in ConnectoMod.java
-                        } else {
-                            ConnectoMod.LOGGER.info("[Connecto] [Config] Unknown packet 0x{} (len={}) – ignoring.", Integer.toHexString(packetId), data.length);
+                            ConnectoMod.LOGGER.info("[Connecto] ✓ Uptime bot is IN-GAME!");
                         }
-
                     } else {
-                        // BotState.PLAY – drain all packets and echo KeepAlives
-                        // KeepAlive in Play state is 0x26 in 1.21.4 (Serverbound: 0x18)
-                        // It's safer to just let the mixin suppress timeout.
+                        // BotState.PLAY
                     }
                 }
 
@@ -212,10 +214,9 @@ public class EmbeddedBotManager {
                 }
             } finally {
                 Socket s = currentSocket;
-                if (s != null) {
-                    try { s.close(); } catch (Exception ignored) {}
-                    currentSocket = null;
-                }
+                if (s != null) { try { s.close(); } catch (Exception ignored) {} currentSocket = null; }
+                WebSocketStreamAdapter ws = currentWsAdapter;
+                if (ws != null) { try { ws.close(); } catch (Exception ignored) {} currentWsAdapter = null; }
             }
 
             if (RUNNING.get()) {
@@ -237,14 +238,13 @@ public class EmbeddedBotManager {
         writeFrame(out, p.toByteArray());
     }
 
-    private static void sendLoginStart(OutputStream out, String botName) throws IOException {
+    private static void sendLoginStart(OutputStream out, String botName, UUID sessionToken) throws IOException {
         ByteArrayOutputStream p = new ByteArrayOutputStream();
         writeVarInt(p, 0x00);        // Packet ID: Login Start
         writeString(p, botName);
-        UUID uuid = UUIDUtil.createOfflinePlayerUUID(botName);
         DataOutputStream dos = new DataOutputStream(p);
-        dos.writeLong(uuid.getMostSignificantBits());
-        dos.writeLong(uuid.getLeastSignificantBits());
+        dos.writeLong(sessionToken.getMostSignificantBits());
+        dos.writeLong(sessionToken.getLeastSignificantBits());
         writeFrame(out, p.toByteArray());
     }
 
@@ -258,15 +258,10 @@ public class EmbeddedBotManager {
         writeVarInt(p, 1); // Main hand: Right
         p.write(0); // Text filtering: false
         p.write(1); // Allow server listings: true
-        
-        // MC 1.21.2+ adds Particle Status (VarInt) at the end!
-        // 0 = All, 1 = Decreased, 2 = Minimal
-        writeVarInt(p, 0);
+        writeVarInt(p, 0); // Particle Status
 
         sendPacket(out, compressionThreshold, C_CONFIG_CLIENT_INFO, p.toByteArray());
     }
-
-
 
     private static void sendPacket(OutputStream out, int compressionThreshold, int packetId, byte[] payload) throws IOException {
         ByteArrayOutputStream p = new ByteArrayOutputStream();
@@ -278,10 +273,10 @@ public class EmbeddedBotManager {
             ByteArrayOutputStream frame = new ByteArrayOutputStream();
             if (rawData.length >= compressionThreshold) {
                 byte[] compressed = deflate(rawData);
-                writeVarInt(frame, rawData.length); // uncompressed length
+                writeVarInt(frame, rawData.length);
                 frame.write(compressed);
             } else {
-                writeVarInt(frame, 0);              // 0 = not compressed
+                writeVarInt(frame, 0);
                 frame.write(rawData);
             }
             writeFrame(out, frame.toByteArray());
@@ -298,7 +293,7 @@ public class EmbeddedBotManager {
         out.flush();
     }
 
-    // ---- Encoding helpers ----
+    // ---- Encoding & Decoding helpers ----
 
     private static void writeVarInt(OutputStream out, int value) throws IOException {
         while ((value & ~0x7F) != 0) {
@@ -319,8 +314,6 @@ public class EmbeddedBotManager {
         writeVarInt(out, bytes.length);
         out.write(bytes);
     }
-
-    // ---- Decoding helpers ----
 
     private static int readVarInt(InputStream in) throws IOException {
         int value = 0, position = 0;
@@ -362,8 +355,6 @@ public class EmbeddedBotManager {
         }
         return buf;
     }
-
-    // ---- Compression ----
 
     private static byte[] inflate(byte[] compressed, int expectedLen) throws DataFormatException {
         Inflater inflater = new Inflater();

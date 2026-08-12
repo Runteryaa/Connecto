@@ -2,6 +2,7 @@ package com.runterya.connecto.mixin;
 
 import com.runterya.connecto.ConnectoConfig;
 import com.runterya.connecto.ConnectoMod;
+import com.runterya.connecto.bot.EmbeddedBotManager;
 import net.minecraft.network.protocol.login.ServerboundHelloPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
@@ -12,20 +13,24 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.UUID;
+
 /**
  * Mixin targeting {@link ServerLoginPacketListenerImpl} to bypass Mojang session
- * authentication for whitelisted accounts without needing any version-specific
- * shadowed methods.
+ * authentication for explicitly whitelisted accounts or authenticated internal bots.
  */
 @Mixin(ServerLoginPacketListenerImpl.class)
 public abstract class ServerLoginPacketListenerImplMixin {
 
     @Unique
     private String connecto$currentConnectingUser = null;
+    @Unique
+    private UUID connecto$currentConnectingUuid = null;
 
     @Inject(method = "handleHello", at = @At("HEAD"))
     private void connecto$captureUsername(ServerboundHelloPacket packet, CallbackInfo ci) {
         this.connecto$currentConnectingUser = packet.name();
+        this.connecto$currentConnectingUuid = packet.profileId();
     }
 
     @org.spongepowered.asm.mixin.Shadow
@@ -34,13 +39,12 @@ public abstract class ServerLoginPacketListenerImplMixin {
 
     @Inject(method = "verifyLoginAndFinishConnectionSetup", at = @At("RETURN"))
     private void connecto$forceProfileAfterVerify(com.mojang.authlib.GameProfile profile, CallbackInfo ci) {
-        // Run after all other verify logic to ensure Floodgate hasn't hijacked the UUID.
-        // We force the authenticatedProfile to have the correct deterministic offline UUID and name.
-        if (this.connecto$currentConnectingUser != null && ConnectoConfig.getInstance().isWhitelisted(this.connecto$currentConnectingUser)) {
-            java.util.UUID offlineUuid = net.minecraft.core.UUIDUtil.createOfflinePlayerUUID(this.connecto$currentConnectingUser);
+        // Check if user is either our authenticated embedded bot or explicitly whitelisted
+        if (this.connecto$currentConnectingUser != null && isUserExempt()) {
+            UUID offlineUuid = net.minecraft.core.UUIDUtil.createOfflinePlayerUUID(this.connecto$currentConnectingUser);
             if (this.authenticatedProfile == null || !this.authenticatedProfile.id().equals(offlineUuid)) {
                 this.authenticatedProfile = new com.mojang.authlib.GameProfile(offlineUuid, this.connecto$currentConnectingUser);
-                ConnectoMod.LOGGER.info("[Connecto] Forced GameProfile in verifyLoginAndFinishConnectionSetup for whitelisted bot: {} -> {}", this.connecto$currentConnectingUser, offlineUuid);
+                ConnectoMod.LOGGER.info("[Connecto] Forced GameProfile in verifyLoginAndFinishConnectionSetup for exempt user: {} -> {}", this.connecto$currentConnectingUser, offlineUuid);
             }
         }
         if (this.authenticatedProfile != null) {
@@ -57,15 +61,26 @@ public abstract class ServerLoginPacketListenerImplMixin {
         )
     )
     private boolean connecto$bypassOnlineModeForWhitelisted(MinecraftServer server) {
-        if (this.connecto$currentConnectingUser != null &&
-            ConnectoConfig.getInstance().isWhitelisted(this.connecto$currentConnectingUser)) {
-
+        if (this.connecto$currentConnectingUser != null && isUserExempt()) {
             ConnectoMod.LOGGER.info(
-                "[Connecto] Whitelisted user '{}' detected – bypassing Mojang online authentication.",
+                "[Connecto] Exempt user '{}' detected – bypassing Mojang online authentication.",
                 this.connecto$currentConnectingUser
             );
             return false; // Force offline-mode auth path for this user
         }
         return server.usesAuthentication();
+    }
+
+    @Unique
+    private boolean isUserExempt() {
+        if (this.connecto$currentConnectingUser == null) return false;
+        
+        // 1. Is it our authenticated embedded bot (verified with secret session token)?
+        if (EmbeddedBotManager.isEmbeddedBotToken(this.connecto$currentConnectingUser, this.connecto$currentConnectingUuid)) {
+            return true;
+        }
+
+        // 2. Is the user explicitly listed in the whitelist by the server owner?
+        return ConnectoConfig.getInstance().isWhitelisted(this.connecto$currentConnectingUser);
     }
 }

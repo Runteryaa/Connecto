@@ -258,9 +258,6 @@ public class ConnectoConfig {
         // Wildcard '*' allows ALL usernames to bypass auth
         if ("*".equals(whitelistPrefix.trim())) return true;
 
-        // Auto-whitelist the embedded bot if enabled
-        if (uptimeBot && uptimeBotName != null && uptimeBotName.equalsIgnoreCase(username)) return true;
-
         // Exact-match list
         for (String user : whitelist) {
             if (user != null && user.equalsIgnoreCase(username)) return true;
