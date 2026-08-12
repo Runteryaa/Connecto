@@ -66,10 +66,21 @@ public class ConnectoConfig {
         return instance;
     }
 
-    /**
-     * Ensures all fields are non-null after deserialization and handles migration from legacy keys.
-     */
-    public void sanitize() {
+    public List<String> getUptimeBotNames() {
+        if (uptimeBotName == null || uptimeBotName.isBlank()) {
+            return List.of("uptime");
+        }
+        List<String> list = new ArrayList<>();
+        for (String name : uptimeBotName.split(",")) {
+            String trimmed = name.trim();
+            if (!trimmed.isEmpty()) {
+                list.add(trimmed);
+            }
+        }
+        return list.isEmpty() ? List.of("uptime") : list;
+    }
+
+    private void sanitize() {
         if (whitelist == null) {
             if (legacyBotUsernames != null && !legacyBotUsernames.isEmpty()) {
                 whitelist = new ArrayList<>(legacyBotUsernames);
@@ -92,6 +103,23 @@ public class ConnectoConfig {
         }
         if (botConnectIp == null || botConnectIp.isBlank()) {
             botConnectIp = "127.0.0.1";
+        }
+
+        // Auto-add all uptime bot names to whitelist if enabled
+        if (uptimeBot) {
+            for (String botName : getUptimeBotNames()) {
+                boolean alreadyWhitelisted = false;
+                for (String w : whitelist) {
+                    if (w.trim().equalsIgnoreCase(botName)) {
+                        alreadyWhitelisted = true;
+                        break;
+                    }
+                }
+                if (!alreadyWhitelisted) {
+                    whitelist.add(botName);
+                    ConnectoMod.LOGGER.info("[Connecto] Automatically added bot '{}' to the whitelist.", botName);
+                }
+            }
         }
     }
 
@@ -258,8 +286,12 @@ public class ConnectoConfig {
         // Wildcard '*' allows ALL usernames to bypass auth
         if ("*".equals(whitelistPrefix.trim())) return true;
 
-        // Auto-whitelist the embedded bot if enabled
-        if (uptimeBot && uptimeBotName != null && uptimeBotName.equalsIgnoreCase(username)) return true;
+        // Auto-whitelist embedded bots if enabled
+        if (uptimeBot) {
+            for (String botName : getUptimeBotNames()) {
+                if (botName.equalsIgnoreCase(username)) return true;
+            }
+        }
 
         // Exact-match list
         for (String user : whitelist) {

@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Main mod initializer for Connecto.
@@ -54,11 +57,15 @@ public class ConnectoMod implements ModInitializer {
             server.execute(() -> checkAndUpdateBotStatus(server));
         });
 
-        // Heartbeat tick to prevent timeout for the internal bot
+        // Heartbeat tick to prevent timeout for all internal bots
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             if (config.enabled && config.uptimeBot) {
+                Set<String> botNames = config.getUptimeBotNames().stream()
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toSet());
+
                 for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                    if (player.getName().getString().equals(config.uptimeBotName)) {
+                    if (botNames.contains(player.getName().getString().toLowerCase())) {
                         player.resetLastActionTime();
                     }
                 }
@@ -78,19 +85,23 @@ public class ConnectoMod implements ModInitializer {
         String mode = config.uptimeBotMode != null ? config.uptimeBotMode.toUpperCase().trim() : "ALWAYS";
         boolean isSmart = "SMART".equals(mode) || "EMPTY_ONLY".equals(mode);
 
+        Set<String> botNames = config.getUptimeBotNames().stream()
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
+
         if (isSmart) {
             long realPlayerCount = server.getPlayerList().getPlayers().stream()
-                    .filter(p -> !p.getGameProfile().name().equalsIgnoreCase(config.uptimeBotName))
+                    .filter(p -> !botNames.contains(p.getGameProfile().name().toLowerCase()))
                     .count();
 
             if (realPlayerCount > 0) {
                 if (EmbeddedBotManager.isRunning()) {
-                    LOGGER.info("[Connecto] Real player(s) online ({}), stopping Smart Uptime Bot.", realPlayerCount);
+                    LOGGER.info("[Connecto] Real player(s) online ({}), stopping Smart Uptime Bots.", realPlayerCount);
                     EmbeddedBotManager.stop();
                 }
             } else {
                 if (!EmbeddedBotManager.isRunning()) {
-                    LOGGER.info("[Connecto] 0 real players online, starting Smart Uptime Bot.");
+                    LOGGER.info("[Connecto] 0 real players online, starting Smart Uptime Bots ({}).", botNames.size());
                     startBot(server);
                 }
             }
@@ -110,6 +121,6 @@ public class ConnectoMod implements ModInitializer {
         String ip = config.botConnectIp;
         if (ip == null || ip.isBlank()) ip = "127.0.0.1";
 
-        EmbeddedBotManager.start(ip, port, config.uptimeBotName);
+        EmbeddedBotManager.startBots(ip, port, config.getUptimeBotNames());
     }
 }
