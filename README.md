@@ -39,7 +39,7 @@ java -version
 .\gradlew build
 
 # 3. Output JAR is at:
-#    build/libs/connecto-1.2.0-beta.1.jar
+#    build/libs/connecto-1.3.1.jar
 ```
 
 ---
@@ -48,24 +48,36 @@ java -version
 
 1. Copy `build/libs/connecto-*.jar` into the server's `mods/` folder.
 2. Start the server once to generate `config/connecto.properties`.
-3. Set `"enabled": true` in `config/connecto.properties` and add your username to `whitelist`.
-4. If you want uptimeBot to make your server 7/24, you can enable and configure it inside the config.
-5. Restart the server.
+3. Set `enabled=true` in `config/connecto.properties` and add your username to `whitelist`.
+4. If you want `uptimeBot` to keep your server active 24/7, enable and configure it in the config (modes: `ALWAYS` or `SMART`).
+5. Configure `fetchOfflineSkins` and `defaultOfflineSkinUser` if you want offline players to display Mojang skins.
+6. Restart the server.
 
 ---
 
+## ⚙️ In-Game Commands (Requires OP Level 2)
 
-## 🔐 How the Bypass Works (Technical)
+* `/connecto status` — Displays mod status, active bot state, proxy status, skin settings, and whitelist count.
+* `/connecto reload` — Reloads `connecto.properties` dynamically and re-fetches the default offline skin.
+* `/connecto whitelist list` — Lists all whitelisted usernames.
+* `/connecto whitelist add <username>` — Adds a username to the auth bypass whitelist.
+* `/connecto whitelist remove <username>` — Removes a username from the whitelist.
+
+---
+
+## 🔐 How the Bypass & Security Work (Technical)
 
 ```
 Normal online-mode flow:
   Client → handleHello → encryption challenge → handleKey
         → sessionserver.mojang.com hasJoined? → startPlay
 
-Connecto flow (for whitelisted usernames):
+Connecto flow (for whitelisted usernames & internal bot):
   Client → handleHello (Authentication bypassed via Mixin)
          → Server generates Offline UUID & GameProfile
-         → Client finishes Login Phase (UUID injected during verifyLoginAndFinishConnectionSetup)
+         → Secret Session UUID Token verifies internal bot connections
+         → Unauthorized connections using bot names trigger Security Alerts
+         → SkinFetcher applies official Mojang / default fallback skin
          → Server suppresses Netty keepAlive timeouts to keep session stable
          → startPlay()
 ```
@@ -77,3 +89,4 @@ The offline UUID is derived with `UUIDUtil.createOfflinePlayerUUID("<name>")`, i
 ## 📄 License
 
 MIT
+
