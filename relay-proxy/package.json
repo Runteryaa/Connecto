@@ -1,7 +1,7 @@
 {
   "name": "connecto-relay-proxy",
   "version": "1.0.0",
-  "description": "Multi-tenant WebSocket-to-TCP Relay Proxy for Connecto Minecraft Mod",
+  "description": "ConnectoRelay",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
